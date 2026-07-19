@@ -1,0 +1,145 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    background-color: #f8fafc !important;
+    background-image: 
+      radial-gradient(at 0% 0%, rgba(59, 130, 246, 0.05) 0px, transparent 50%),
+      radial-gradient(at 50% 0%, rgba(6, 182, 212, 0.03) 0px, transparent 50%),
+      radial-gradient(at 100% 0%, rgba(16, 185, 129, 0.04) 0px, transparent 50%) !important;
+    background-attachment: fixed;
+    color: #0f172a !important;
+  }
+}
+
+/* Hard Theme Overrides to Force Premium Light Mode */
+html, body, #root {
+  background-color: #f8fafc !important;
+  color: #0f172a !important;
+}
+
+/* Page wrapper & backgrounds */
+.bg-slate-950, [class*="bg-slate-950"] {
+  background-color: #f8fafc !important;
+}
+
+/* Card panels */
+.bg-slate-900, [class*="bg-slate-900"],
+.glass-panel, [class*="glass-panel"] {
+  background-color: #ffffff !important;
+  background: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  box-shadow: 
+    0 1px 3px 0 rgba(15, 23, 42, 0.03),
+    0 4px 6px -1px rgba(15, 23, 42, 0.05),
+    0 10px 15px -3px rgba(15, 23, 42, 0.03) !important;
+}
+
+/* Nested sub-panels or lists */
+.bg-slate-900\/80, .bg-slate-900\/60, .bg-slate-950\/60, .bg-slate-950\/40, .bg-slate-800\/60, .bg-slate-800\/80 {
+  background-color: #f8fafc !important;
+  background: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+}
+
+/* Glass panel hover states */
+.glass-panel-hover:hover {
+  @apply transition-all duration-300;
+  border-color: rgba(37, 99, 235, 0.25) !important;
+  background-color: #ffffff !important;
+  box-shadow: 
+    0 10px 25px -5px rgba(37, 99, 235, 0.05),
+    0 8px 10px -6px rgba(37, 99, 235, 0.05) !important;
+}
+
+/* Divider and Borders */
+.border-slate-800, [class*="border-slate-800"],
+.border-slate-900, [class*="border-slate-900"],
+.border-slate-800\/40, [class*="border-slate-800/40"] {
+  border-color: #e2e8f0 !important;
+}
+.border-slate-700, [class*="border-slate-700"] {
+  border-color: #cbd5e1 !important;
+}
+
+/* Header & Navigation */
+header, footer {
+  background-color: rgba(255, 255, 255, 0.8) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+}
+
+/* Text Element Color Enforcements */
+.text-slate-100, .text-slate-200, .text-slate-300, .text-white {
+  color: #0f172a !important;
+}
+.text-slate-400 {
+  color: #334155 !important;
+}
+.text-slate-500 {
+  color: #64748b !important;
+}
+
+/* Buttons, badging, or items with explicit color/gradient backgrounds */
+.bg-gradient-to-r:not(.bg-clip-text), .bg-gradient-to-tr:not(.bg-clip-text), .bg-blue-600, .bg-indigo-600, .bg-emerald-600, .bg-yellow-600, .bg-amber-600, .bg-rose-600, .bg-red-600, .bg-cyan-600, .bg-green-600,
+.bg-gradient-to-r:not(.bg-clip-text) *, .bg-gradient-to-tr:not(.bg-clip-text) *, .bg-blue-600 *, .bg-indigo-600 *, .bg-emerald-600 *, .bg-yellow-600 *, .bg-amber-600 *, .bg-rose-600 *, .bg-red-600 *, .bg-cyan-600 *, .bg-green-600 * {
+  color: #ffffff !important;
+}
+
+.bg-clip-text, [class*="bg-clip-text"] {
+  color: transparent !important;
+  -webkit-text-fill-color: transparent !important;
+}
+
+/* Text highlighting & glows */
+.text-glow-blue {
+  text-shadow: 0 0 10px rgba(37, 99, 235, 0.12);
+}
+.text-glow-cyan {
+  text-shadow: 0 0 10px rgba(8, 145, 178, 0.12);
+}
+
+/* Tags and pill badges */
+.bg-slate-900.border.border-slate-800,
+[class*="bg-slate-900"].border,
+[class*="bg-slate-900"].px-2 {
+  background-color: #f1f5f9 !important;
+  border-color: #cbd5e1 !important;
+  color: #475569 !important;
+}
+
+/* Form input, textarea, and selects formatting */
+input, textarea, select {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border: 1px solid #cbd5e1 !important;
+}
+input:focus, textarea:focus, select:focus {
+  border-color: #2563eb !important;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.12) !important;
+}
+
+/* Hover highlights */
+.hover\:bg-slate-800:hover, .hover\:bg-slate-700:hover {
+  background-color: #f1f5f9 !important;
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #f8fafc;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+  border: 2px solid #f8fafc;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
