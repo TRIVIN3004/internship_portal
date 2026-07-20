@@ -35,10 +35,19 @@ if is_vercel and DATABASE_URL.startswith("postgresql://"):
 is_sqlite = DATABASE_URL.startswith("sqlite")
 connect_args = {"check_same_thread": False} if is_sqlite else {}
 
+engine_kwargs = {"connect_args": connect_args}
+if not is_sqlite:
+    engine_kwargs.update({
+        "pool_pre_ping": True,
+        "pool_recycle": 300,
+        "pool_size": 5,
+        "max_overflow": 10
+    })
+
 # Engine configuration
 engine = create_engine(
     DATABASE_URL, 
-    connect_args=connect_args
+    **engine_kwargs
 )
 
 # Session factory
