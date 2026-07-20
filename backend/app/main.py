@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .database import engine, Base
-from .routers import auth, students, mentors, admin, analytics
+from .routers import auth, students, mentors, admin, analytics, chat
 
 # Initialize FastAPI App
 app = FastAPI(
@@ -40,6 +40,8 @@ app.include_router(students.router, prefix="/api")
 app.include_router(mentors.router, prefix="/api")
 app.include_router(admin.router, prefix="/api")
 app.include_router(analytics.router, prefix="/api")
+app.include_router(chat.router, prefix="/api")
+
 
 @app.get("/api/health")
 def health_check():

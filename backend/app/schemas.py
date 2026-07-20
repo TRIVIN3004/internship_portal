@@ -196,3 +196,29 @@ class AnalyticsOverview(BaseModel):
     at_risk_count: int
     on_track_count: int
     outstanding_count: int
+
+# --- Chat Schemas ---
+class ChatMessageCreate(BaseModel):
+    receiver_id: int
+    message: str
+
+class ChatMessageOut(BaseModel):
+    id: int
+    sender_id: int
+    receiver_id: int
+    message: str
+    created_at: datetime.datetime
+    is_read: bool
+
+    class Config:
+        from_attributes = True
+
+class ChatContactOut(BaseModel):
+    user_id: int
+    name: str
+    role: str
+    detail: Optional[str] = None
+    unread_count: int = 0
+    last_message: Optional[str] = None
+    last_message_time: Optional[datetime.datetime] = None
+

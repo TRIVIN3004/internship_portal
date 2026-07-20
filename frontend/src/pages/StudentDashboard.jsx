@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import ChatBox from '../components/ChatBox';
 import { 
   User, Calendar, CheckSquare, Award, BookOpen, Send, 
   Smile, Activity, AlertCircle, FileText, CheckCircle, Clock
@@ -613,6 +614,8 @@ export default function StudentDashboard() {
         </div>
 
       </div>
+      <ChatBox />
     </div>
   );
 }
+

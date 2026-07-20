@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
+import ChatBox from '../components/ChatBox';
 import {
   Users, PlusSquare, FileText, CheckCircle, XCircle, Award,
   ShieldAlert, TrendingUp, Clock, RefreshCw, Lock, Layers,
@@ -469,6 +470,8 @@ export default function MentorDashboard() {
         )}
 
       </div>
+      <ChatBox />
     </div>
   );
 }
+
