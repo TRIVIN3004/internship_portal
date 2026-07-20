@@ -20,10 +20,7 @@ if DATABASE_URL.startswith("postgres://"):
 
 # Serverless optimizations for Vercel
 if is_vercel and DATABASE_URL.startswith("postgresql://"):
-    # 1. Use connection pooler port (6543) instead of direct connection port (5432) to avoid port blocking/exhaustion
-    if ":5432/" in DATABASE_URL:
-        DATABASE_URL = DATABASE_URL.replace(":5432/", ":6543/")
-    # 2. Force sslmode=require for secure serverless connections
+    # Force sslmode=require for secure serverless connections
     if "sslmode" not in DATABASE_URL:
         separator = "&" if "?" in DATABASE_URL else "?"
         DATABASE_URL = f"{DATABASE_URL}{separator}sslmode=require"
