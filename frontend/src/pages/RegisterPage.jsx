@@ -89,7 +89,7 @@ export default function RegisterPage() {
             <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
               Registration Role
             </label>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 gap-4">
               <button
                 type="button"
                 className={`py-3 rounded-lg font-bold border text-xs md:text-sm transition ${
@@ -111,17 +111,6 @@ export default function RegisterPage() {
                 onClick={() => setRole('mentor')}
               >
                 Academic Mentor
-              </button>
-              <button
-                type="button"
-                className={`py-3 rounded-lg font-bold border text-xs md:text-sm transition ${
-                  role === 'admin'
-                    ? 'bg-blue-600/10 border-blue-500 text-blue-400'
-                    : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:border-slate-700'
-                }`}
-                onClick={() => setRole('admin')}
-              >
-                System Admin
               </button>
             </div>
           </div>
@@ -162,7 +151,7 @@ export default function RegisterPage() {
             </div>
           </div>
 
-          <div className={`grid grid-cols-1 ${role !== 'admin' ? 'md:grid-cols-2' : ''} gap-4`}>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
                 Password
@@ -180,24 +169,22 @@ export default function RegisterPage() {
               </div>
             </div>
 
-            {role !== 'admin' && (
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
-                  Department
-                </label>
-                <div className="relative">
-                  <Book className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" size={16} />
-                  <input
-                    type="text"
-                    required
-                    className="w-full pl-10 pr-4 py-2.5 bg-slate-900/80 border border-slate-800 focus:border-blue-500 rounded-lg text-sm text-slate-200 outline-none transition"
-                    placeholder="AI & Data Science"
-                    value={department}
-                    onChange={(e) => setDepartment(e.target.value)}
-                  />
-                </div>
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
+                Department
+              </label>
+              <div className="relative">
+                <Book className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" size={16} />
+                <input
+                  type="text"
+                  required
+                  className="w-full pl-10 pr-4 py-2.5 bg-slate-900/80 border border-slate-800 focus:border-blue-500 rounded-lg text-sm text-slate-200 outline-none transition"
+                  placeholder="AI & Data Science"
+                  value={department}
+                  onChange={(e) => setDepartment(e.target.value)}
+                />
               </div>
-            )}
+            </div>
           </div>
 
           {role === 'student' && (
