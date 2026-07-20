@@ -3,6 +3,12 @@ from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
+
 is_vercel = os.getenv("VERCEL") == "1"
 
 # Ensure the data directory exists locally (not needed on Vercel)
