@@ -10,8 +10,14 @@ from .. import models, schemas, auth
 
 router = APIRouter(prefix="/documents", tags=["Documents"])
 
-UPLOAD_DIR = os.path.join(os.getcwd(), "data", "uploads")
-os.makedirs(UPLOAD_DIR, exist_ok=True)
+is_vercel = os.getenv("VERCEL") == "1"
+UPLOAD_DIR = "/tmp/uploads" if is_vercel else os.path.join(os.getcwd(), "data", "uploads")
+
+def ensure_upload_dir():
+    try:
+        os.makedirs(UPLOAD_DIR, exist_ok=True)
+    except Exception as e:
+        print(f"Upload directory creation warning: {e}")
 
 
 def get_user_from_token_or_header(
@@ -51,6 +57,7 @@ async def upload_document(
     if not file.filename:
         raise HTTPException(status_code=400, detail="Empty filename provided")
         
+    ensure_upload_dir()
     # Generate unique filename to avoid collisions
     ext = os.path.splitext(file.filename)[1]
     unique_name = f"{datetime.datetime.utcnow().strftime('%Y%m%d%H%M%S')}_{uuid.uuid4().hex[:8]}{ext}"

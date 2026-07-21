@@ -15,10 +15,17 @@ app = FastAPI(
 def startup_db():
     import os
     try:
-        os.makedirs(os.path.join(os.getcwd(), "data", "uploads"), exist_ok=True)
+        is_vercel = os.getenv("VERCEL") == "1"
+        upload_dir = "/tmp/uploads" if is_vercel else os.path.join(os.getcwd(), "data", "uploads")
+        os.makedirs(upload_dir, exist_ok=True)
+    except Exception as e:
+        print(f"Upload directory startup warning: {e}")
+        
+    try:
         Base.metadata.create_all(bind=engine)
     except Exception as e:
         print(f"Database table initialization failed: {e}")
+
 
 # CORS configurations for frontend communication
 origins = [
