@@ -15,6 +15,7 @@ class User(Base):
     # Profile links
     student_profile = relationship("StudentProfile", back_populates="user", uselist=False, cascade="all, delete-orphan")
     mentor_profile = relationship("MentorProfile", back_populates="user", uselist=False, cascade="all, delete-orphan")
+    feedbacks = relationship("Feedback", back_populates="user", cascade="all, delete-orphan")
 
 class StudentProfile(Base):
     __tablename__ = "student_profiles"
@@ -38,6 +39,7 @@ class StudentProfile(Base):
     tasks = relationship("Task", back_populates="student", cascade="all, delete-orphan")
     certificate = relationship("Certificate", back_populates="student", uselist=False, cascade="all, delete-orphan")
     performance_metrics = relationship("PerformanceMetrics", back_populates="student", uselist=False, cascade="all, delete-orphan")
+    documents = relationship("Document", back_populates="student", cascade="all, delete-orphan")
 
 class MentorProfile(Base):
     __tablename__ = "mentor_profiles"
@@ -112,6 +114,7 @@ class Task(Base):
     
     student = relationship("StudentProfile", back_populates="tasks")
     mentor = relationship("MentorProfile", back_populates="created_tasks")
+    documents = relationship("Document", back_populates="task")
 
 class Certificate(Base):
     __tablename__ = "certificates"
@@ -155,4 +158,39 @@ class ChatMessage(Base):
 
     sender = relationship("User", foreign_keys=[sender_id])
     receiver = relationship("User", foreign_keys=[receiver_id])
+
+class Document(Base):
+    __tablename__ = "documents"
+
+    id = Column(Integer, primary_key=True, index=True)
+    student_id = Column(Integer, ForeignKey("student_profiles.id", ondelete="CASCADE"), nullable=False, index=True)
+    title = Column(String, nullable=False)
+    description = Column(Text, nullable=True)
+    file_path = Column(String, nullable=False)
+    file_name = Column(String, nullable=False)
+    file_type = Column(String, nullable=True)
+    file_size = Column(Integer, default=0)
+    uploaded_at = Column(DateTime, default=datetime.datetime.utcnow)
+    task_id = Column(Integer, ForeignKey("tasks.id", ondelete="SET NULL"), nullable=True)
+
+    student = relationship("StudentProfile", back_populates="documents")
+    task = relationship("Task", back_populates="documents")
+
+class Feedback(Base):
+    __tablename__ = "feedbacks"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    role = Column(String, nullable=False) # "student", "mentor", "admin"
+    category = Column(String, nullable=False) # "Feature Request", "Bug Report", "UI / UX Improvement", "Performance", "General"
+    rating = Column(Integer, default=5) # 1 to 5
+    subject = Column(String, nullable=False)
+    message = Column(Text, nullable=False)
+    status = Column(String, default="pending") # "pending", "reviewed", "resolved"
+    admin_notes = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+    user = relationship("User", back_populates="feedbacks")
+
+
 

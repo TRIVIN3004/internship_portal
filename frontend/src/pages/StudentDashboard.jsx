@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import ChatBox from '../components/ChatBox';
+import FeedbackModal from '../components/FeedbackModal';
 import { 
   User, Calendar, CheckSquare, Award, BookOpen, Send, 
-  Smile, Activity, AlertCircle, FileText, CheckCircle, Clock
+  Smile, Activity, AlertCircle, FileText, CheckCircle, Clock,
+  UploadCloud, Eye, Download, Trash2, Paperclip, Lock, MessageSquare
 } from 'lucide-react';
 
 export default function StudentDashboard() {
@@ -15,6 +17,9 @@ export default function StudentDashboard() {
   const [reports, setReports] = useState([]);
   const [attendance, setAttendance] = useState([]);
   const [recommendations, setRecommendations] = useState([]);
+  const [documents, setDocuments] = useState([]);
+  const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
+
   
   // Form states
   const [reportContent, setReportContent] = useState('');
@@ -23,10 +28,18 @@ export default function StudentDashboard() {
   const [attendanceStatus, setAttendanceStatus] = useState('present');
   const [activeTaskSubmitId, setActiveTaskSubmitId] = useState(null);
   const [taskSubmissionText, setTaskSubmissionText] = useState('');
+
+  // Document upload states
+  const [docTitle, setDocTitle] = useState('');
+  const [docDesc, setDocDesc] = useState('');
+  const [docFile, setDocFile] = useState(null);
+  const [docTaskId, setDocTaskId] = useState('');
+  const [uploadingDoc, setUploadingDoc] = useState(false);
   
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
   const [errMessage, setErrMessage] = useState('');
+
 
   // Auto-calculated stats
   const [stats, setStats] = useState({
@@ -79,11 +92,114 @@ export default function StudentDashboard() {
         const recsData = await recsRes.json();
         setRecommendations(recsData);
       }
+
+      // Documents
+      const docsRes = await authenticatedFetch('/api/documents/student');
+      if (docsRes.ok) {
+        const docsData = await docsRes.json();
+        setDocuments(docsData);
+      }
     } catch (err) {
       setErrMessage('Error loading dashboard data.');
     } finally {
       setLoading(false);
     }
+  };
+
+  const fetchDocuments = async () => {
+    try {
+      const res = await authenticatedFetch('/api/documents/student');
+      if (res.ok) setDocuments(await res.json());
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleUploadDocument = async (e) => {
+    e.preventDefault();
+    if (!docFile) {
+      setErrMessage('Please select a file to upload.');
+      return;
+    }
+    if (!docTitle) {
+      setErrMessage('Please enter a document title.');
+      return;
+    }
+    setMessage('');
+    setErrMessage('');
+    setUploadingDoc(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', docFile);
+      formData.append('title', docTitle);
+      if (docDesc) formData.append('description', docDesc);
+      if (docTaskId) formData.append('task_id', docTaskId);
+
+      const token = localStorage.getItem('token');
+      const res = await fetch('/api/documents/upload', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData
+      });
+
+      if (res.ok) {
+        setMessage('Document uploaded successfully!');
+        setDocTitle('');
+        setDocDesc('');
+        setDocFile(null);
+        setDocTaskId('');
+        const input = document.getElementById('doc-file-input');
+        if (input) input.value = '';
+        fetchDocuments();
+      } else {
+        const err = await res.json();
+        setErrMessage(err.detail || 'Failed to upload document.');
+      }
+    } catch (err) {
+      setErrMessage('Error uploading document.');
+    } finally {
+      setUploadingDoc(false);
+    }
+  };
+
+  const handleDeleteDocument = async (docId) => {
+    if (!window.confirm('Are you sure you want to delete this document?')) return;
+    setMessage('');
+    setErrMessage('');
+    try {
+      const res = await authenticatedFetch(`/api/documents/${docId}`, {
+        method: 'DELETE'
+      });
+      if (res.ok) {
+        setMessage('Document deleted successfully.');
+        fetchDocuments();
+      } else {
+        const err = await res.json();
+        setErrMessage(err.detail || 'Failed to delete document.');
+      }
+    } catch (err) {
+      setErrMessage('Error deleting document.');
+    }
+  };
+
+  const handleViewDocument = (docId) => {
+    const token = localStorage.getItem('token');
+    window.open(`/api/documents/${docId}/view?token=${token}`, '_blank');
+  };
+
+  const handleDownloadDocFile = (docId) => {
+    const token = localStorage.getItem('token');
+    window.open(`/api/documents/${docId}/download?token=${token}`, '_blank');
+  };
+
+  const formatBytes = (bytes) => {
+    if (!bytes) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
   };
 
   useEffect(() => {
@@ -230,6 +346,12 @@ export default function StudentDashboard() {
           </span>
         </div>
         <div className="flex items-center gap-4">
+          <button
+            onClick={() => setIsFeedbackOpen(true)}
+            className="px-3 py-1.5 rounded bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 text-xs font-bold text-cyan-400 flex items-center gap-1.5 transition"
+          >
+            <MessageSquare size={14} /> Feedback & Ideas
+          </button>
           <span className="text-sm font-semibold text-slate-300">
             {profile?.name || name}
           </span>
@@ -583,6 +705,158 @@ export default function StudentDashboard() {
             </div>
           </div>
 
+          {/* Document Upload & Files Management Panel */}
+          <div className="glass-panel p-6 rounded-2xl space-y-6">
+            <div className="flex items-center justify-between">
+              <h4 className="font-heading font-bold text-white flex items-center gap-2">
+                <UploadCloud size={20} className="text-cyan-400" /> Document Repository & Uploads
+              </h4>
+              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-900 border border-slate-800 text-slate-400">
+                Uploaded: {documents.length}
+              </span>
+            </div>
+
+            {/* Upload Form */}
+            <form onSubmit={handleUploadDocument} className="p-4 bg-slate-900/60 border border-slate-800/80 rounded-xl space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1">
+                    Document Title *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Project Proposal / Weekly Code Output"
+                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 focus:border-cyan-500 rounded text-xs text-slate-200 outline-none"
+                    value={docTitle}
+                    onChange={(e) => setDocTitle(e.target.value)}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1">
+                    Select File *
+                  </label>
+                  <input
+                    id="doc-file-input"
+                    type="file"
+                    required
+                    className="w-full text-xs text-slate-400 file:mr-3 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-cyan-500/10 file:text-cyan-400 hover:file:bg-cyan-500/20 cursor-pointer"
+                    onChange={(e) => setDocFile(e.target.files[0] || null)}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1">
+                    Description / Remarks (Optional)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Brief description of the document contents..."
+                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 focus:border-cyan-500 rounded text-xs text-slate-200 outline-none"
+                    value={docDesc}
+                    onChange={(e) => setDocDesc(e.target.value)}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1">
+                    Link to Task (Optional)
+                  </label>
+                  <select
+                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 focus:border-cyan-500 rounded text-xs text-slate-300 outline-none"
+                    value={docTaskId}
+                    onChange={(e) => setDocTaskId(e.target.value)}
+                  >
+                    <option value="">General Document (Not linked to a task)</option>
+                    {tasks.map((t) => (
+                      <option key={t.id} value={t.id}>{t.title}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex justify-end">
+                <button
+                  type="submit"
+                  disabled={uploadingDoc}
+                  className="px-5 py-2 rounded bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold text-xs flex items-center gap-2 shadow-md transition disabled:opacity-50"
+                >
+                  <UploadCloud size={14} /> {uploadingDoc ? 'Uploading...' : 'Upload Document'}
+                </button>
+              </div>
+            </form>
+
+            {/* Documents List */}
+            <div className="space-y-3">
+              <h5 className="text-xs font-bold text-slate-300 uppercase tracking-wider">Your Uploaded Files</h5>
+              {documents.length === 0 ? (
+                <p className="text-xs text-slate-500 py-3 text-center bg-slate-900/40 rounded-lg">
+                  No documents uploaded yet.
+                </p>
+              ) : (
+                <div className="grid grid-cols-1 gap-3">
+                  {documents.map((doc) => (
+                    <div key={doc.id} className="p-3 bg-slate-900/80 border border-slate-800 rounded-xl flex items-center justify-between gap-4 hover:border-slate-700 transition">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-9 h-9 rounded-lg bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 shrink-0">
+                          <Paperclip size={18} />
+                        </div>
+                        <div className="min-w-0">
+                          <h6 className="text-xs font-bold text-slate-200 truncate">{doc.title}</h6>
+                          <div className="flex flex-wrap items-center gap-2 text-[10px] text-slate-400 mt-0.5">
+                            <span>{doc.file_name}</span>
+                            <span>•</span>
+                            <span>{formatBytes(doc.file_size)}</span>
+                            <span>•</span>
+                            <span>{new Date(doc.uploaded_at).toLocaleDateString()}</span>
+                            {doc.task_title && (
+                              <>
+                                <span>•</span>
+                                <span className="text-indigo-400 bg-indigo-500/10 px-1.5 py-0.5 rounded border border-indigo-500/20">
+                                  Task: {doc.task_title}
+                                </span>
+                              </>
+                            )}
+                          </div>
+                          {doc.description && (
+                            <p className="text-[10px] text-slate-400 italic mt-1">{doc.description}</p>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <button
+                          onClick={() => handleViewDocument(doc.id)}
+                          title="View / Open Inline"
+                          className="p-1.5 rounded bg-slate-800 hover:bg-slate-700 text-cyan-400 transition"
+                        >
+                          <Eye size={14} />
+                        </button>
+                        <button
+                          onClick={() => handleDownloadDocFile(doc.id)}
+                          title="Download File"
+                          className="p-1.5 rounded bg-slate-800 hover:bg-slate-700 text-emerald-400 transition"
+                        >
+                          <Download size={14} />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteDocument(doc.id)}
+                          title="Delete Document"
+                          className="p-1.5 rounded bg-slate-800 hover:bg-red-500/20 text-slate-400 hover:text-red-400 transition"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
           {/* Certificate Download Panel */}
           <div className="glass-panel p-6 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="space-y-1.5 text-center md:text-left">
@@ -615,6 +889,7 @@ export default function StudentDashboard() {
 
       </div>
       <ChatBox />
+      <FeedbackModal isOpen={isFeedbackOpen} onClose={() => setIsFeedbackOpen(false)} />
     </div>
   );
 }

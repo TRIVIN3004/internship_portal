@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import ChatBox from '../components/ChatBox';
+import FeedbackModal from '../components/FeedbackModal';
 import {
   Users, PlusSquare, FileText, CheckCircle, XCircle, Award,
   ShieldAlert, TrendingUp, Clock, RefreshCw, Lock, Layers,
-  AlertTriangle
+  AlertTriangle, Trash2, Paperclip, Download, Eye, UploadCloud, MessageSquare
 } from 'lucide-react';
 
 // ─── Batch configuration ────────────────────────────────────────────────────
@@ -36,6 +37,10 @@ export default function MentorDashboard() {
   const [students, setStudents]   = useState([]);
   const [tasks, setTasks]         = useState([]);
   const [reports, setReports]     = useState([]);
+  const [documents, setDocuments] = useState([]);
+  const [docStudentFilter, setDocStudentFilter] = useState('all');
+  const [isFeedbackOpen, setIsFeedbackOpen]   = useState(false);
+
 
   const [taskTitle, setTaskTitle]         = useState('');
   const [taskDesc, setTaskDesc]           = useState('');
@@ -59,10 +64,11 @@ export default function MentorDashboard() {
     try {
       if (!silent) setLoading(true);
       setIsRefreshing(true);
-      const [studRes, tasksRes, reportsRes] = await Promise.all([
+      const [studRes, tasksRes, reportsRes, docsRes] = await Promise.all([
         authenticatedFetch('/api/mentors/students'),
         authenticatedFetch('/api/mentors/tasks'),
         authenticatedFetch('/api/mentors/reports'),
+        authenticatedFetch('/api/documents/mentor'),
       ]);
       if (studRes.ok) {
         const d = await studRes.json();
@@ -71,6 +77,7 @@ export default function MentorDashboard() {
       }
       if (tasksRes.ok)   setTasks(await tasksRes.json());
       if (reportsRes.ok) setReports(await reportsRes.json());
+      if (docsRes.ok)    setDocuments(await docsRes.json());
       setLastRefresh(new Date());
     } catch {
       if (!silent) setErrMessage('Error loading dashboard data.');
@@ -79,6 +86,7 @@ export default function MentorDashboard() {
       setIsRefreshing(false);
     }
   };
+
 
   useEffect(() => {
     fetchData();
@@ -127,12 +135,51 @@ export default function MentorDashboard() {
     } catch { setErrMessage('Error submitting grade.'); }
   };
 
+  const handleDeleteTask = async (taskId) => {
+    if (!window.confirm('Are you sure you want to delete this task? This action cannot be undone.')) return;
+    setMessage(''); setErrMessage('');
+    try {
+      const res = await authenticatedFetch(`/api/mentors/tasks/${taskId}`, {
+        method: 'DELETE'
+      });
+      if (res.ok) {
+        setMessage('Task deleted successfully!');
+        fetchData();
+      } else {
+        const e = await res.json();
+        setErrMessage(e.detail || 'Failed to delete task.');
+      }
+    } catch {
+      setErrMessage('Error deleting task.');
+    }
+  };
+
+  const handleViewDocument = (docId) => {
+    const token = localStorage.getItem('token');
+    window.open(`/api/documents/${docId}/view?token=${token}`, '_blank');
+  };
+
+  const handleDownloadDocument = (docId) => {
+    const token = localStorage.getItem('token');
+    window.open(`/api/documents/${docId}/download?token=${token}`, '_blank');
+  };
+
+  const formatBytes = (bytes) => {
+    if (!bytes) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+  };
+
   if (loading && students.length === 0) {
     return <div className="min-h-screen flex items-center justify-center text-slate-400"><TrendingUp className="animate-spin text-blue-500 mr-3" /> Loading mentor dashboard...</div>;
   }
 
   const today          = new Date().toISOString().split('T')[0];
   const pendingReports = reports.filter(r => r.status === 'pending');
+  const filteredDocs   = documents.filter(d => docStudentFilter === 'all' || String(d.student_id) === String(docStudentFilter));
+
   const submittedTasks = tasks.filter(t => t.status === 'submitted');
 
   const taskCountsByStatus = tasks.reduce((acc, t) => {
@@ -162,6 +209,12 @@ export default function MentorDashboard() {
           <button onClick={() => fetchData()} title="Refresh now"
             className="p-1.5 rounded-lg bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-400 hover:text-white transition">
             <RefreshCw size={14} className={isRefreshing ? 'animate-spin' : ''} />
+          </button>
+          <button
+            onClick={() => setIsFeedbackOpen(true)}
+            className="px-3 py-1.5 rounded bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 text-xs font-bold text-cyan-400 flex items-center gap-1.5 transition"
+          >
+            <MessageSquare size={14} /> Feedback & Ideas
           </button>
           <span className="text-sm font-semibold text-slate-300">{name}</span>
           <button onClick={logout} className="px-3.5 py-1.5 rounded bg-slate-900 hover:bg-slate-800 border border-slate-800 text-xs font-bold text-slate-400 hover:text-white">Logout</button>
@@ -396,10 +449,16 @@ export default function MentorDashboard() {
                             : <span className="text-slate-600">—</span>}
                         </td>
                         <td className="py-3">
-                          {task.status === 'submitted'
-                            ? <button onClick={() => { setActiveGradeTaskId(task.id); setGradeScore(85); setGradeFeedback(''); }}
+                          <div className="flex items-center gap-2">
+                            {task.status === 'submitted' && (
+                              <button onClick={() => { setActiveGradeTaskId(task.id); setGradeScore(85); setGradeFeedback(''); }}
                                 className="py-1 px-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded text-[9px] font-bold transition">Evaluate</button>
-                            : <span className="text-[9px] text-slate-600">—</span>}
+                            )}
+                            <button onClick={() => handleDeleteTask(task.id)} title="Delete task"
+                              className="p-1.5 rounded bg-slate-900 border border-slate-800 hover:border-red-500/30 text-slate-500 hover:text-red-400 transition">
+                              <Trash2 size={13} />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     );
@@ -469,8 +528,87 @@ export default function MentorDashboard() {
           </section>
         )}
 
+        {/* ══════════════════════════════════════════════════════════════════
+            § 5 — Student Submitted Documents
+            ══════════════════════════════════════════════════════════════════ */}
+        <section className="glass-panel p-6 rounded-2xl space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <h3 className="font-heading font-bold text-lg text-white flex items-center gap-2">
+              <Paperclip size={18} className="text-cyan-400" /> Student Submitted Documents ({documents.length})
+            </h3>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-slate-400 font-medium">Filter by Intern:</span>
+              <select
+                className="px-3 py-1.5 bg-slate-900 border border-slate-800 rounded text-xs text-slate-200 outline-none"
+                value={docStudentFilter}
+                onChange={(e) => setDocStudentFilter(e.target.value)}
+              >
+                <option value="all">All Assigned Students</option>
+                {students.map((s) => (
+                  <option key={s.id} value={s.id}>{s.name}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {filteredDocs.length === 0 ? (
+            <p className="text-xs text-slate-500 py-6 text-center">No documents uploaded by assigned students yet.</p>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {filteredDocs.map((doc) => (
+                <div key={doc.id} className="p-4 bg-slate-900/60 border border-slate-800 rounded-xl space-y-3 hover:border-slate-700 transition">
+                  <div className="flex justify-between items-start gap-3">
+                    <div className="flex items-start gap-3 min-w-0">
+                      <div className="w-9 h-9 rounded-lg bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 shrink-0 mt-0.5">
+                        <Paperclip size={18} />
+                      </div>
+                      <div className="min-w-0">
+                        <h4 className="text-xs font-bold text-slate-200 truncate">{doc.title}</h4>
+                        <p className="text-[10px] text-cyan-400 font-semibold mt-0.5">Student: {doc.student_name}</p>
+                        <div className="flex flex-wrap items-center gap-2 text-[10px] text-slate-400 mt-1">
+                          <span>{doc.file_name}</span>
+                          <span>•</span>
+                          <span>{formatBytes(doc.file_size)}</span>
+                          <span>•</span>
+                          <span>{new Date(doc.uploaded_at).toLocaleDateString()}</span>
+                        </div>
+                        {doc.task_title && (
+                          <div className="mt-1.5">
+                            <span className="text-[9px] bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-2 py-0.5 rounded">
+                              Task: {doc.task_title}
+                            </span>
+                          </div>
+                        )}
+                        {doc.description && (
+                          <p className="text-[10px] text-slate-400 italic mt-1.5">{doc.description}</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-800/60">
+                    <button
+                      onClick={() => handleViewDocument(doc.id)}
+                      className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-cyan-400 rounded text-[10px] font-bold flex items-center gap-1.5 transition"
+                    >
+                      <Eye size={12} /> View
+                    </button>
+                    <button
+                      onClick={() => handleDownloadDocument(doc.id)}
+                      className="px-3 py-1.5 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/30 rounded text-[10px] font-bold flex items-center gap-1.5 transition"
+                    >
+                      <Download size={12} /> Download
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+
       </div>
       <ChatBox />
+      <FeedbackModal isOpen={isFeedbackOpen} onClose={() => setIsFeedbackOpen(false)} />
     </div>
   );
 }

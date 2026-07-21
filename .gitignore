@@ -22,8 +22,11 @@ backend/app/routers/__pycache__/
 backend/data/*.db
 backend/data/certificates/*.pdf
 backend/data/test_certificates/*.pdf
+backend/data/uploads/
+data/uploads/
 /tmp/certificates/
 *.log
 .env
 .env.*
 .DS_Store
+

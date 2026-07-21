@@ -139,6 +139,33 @@ def grade_task(
     
     return task
 
+@router.delete("/tasks/{task_id}")
+def delete_task(
+    task_id: int,
+    mentor: models.MentorProfile = Depends(auth.get_current_active_mentor),
+    db: Session = Depends(get_db)
+):
+    task = db.query(models.Task).filter(models.Task.id == task_id).first()
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+        
+    student = db.query(models.StudentProfile).filter(
+        models.StudentProfile.id == task.assigned_to_student_id,
+        models.StudentProfile.mentor_id == mentor.id
+    ).first()
+    
+    if not student:
+        raise HTTPException(status_code=403, detail="You do not manage the student assigned to this task")
+        
+    student_id = task.assigned_to_student_id
+    db.delete(task)
+    db.commit()
+    
+    # Recalculate student metrics after task removal
+    recalculate_student_metrics(student_id, db)
+    
+    return {"message": "Task deleted successfully"}
+
 @router.get("/reports", response_model=List[schemas.DailyReportOut])
 def get_student_reports(
     mentor: models.MentorProfile = Depends(auth.get_current_active_mentor),

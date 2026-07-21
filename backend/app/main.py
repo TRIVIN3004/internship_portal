@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .database import engine, Base
-from .routers import auth, students, mentors, admin, analytics, chat
+from .routers import auth, students, mentors, admin, analytics, chat, documents, feedback
 
 # Initialize FastAPI App
 app = FastAPI(
@@ -13,7 +13,9 @@ app = FastAPI(
 # Initialize database tables safely on startup
 @app.on_event("startup")
 def startup_db():
+    import os
     try:
+        os.makedirs(os.path.join(os.getcwd(), "data", "uploads"), exist_ok=True)
         Base.metadata.create_all(bind=engine)
     except Exception as e:
         print(f"Database table initialization failed: {e}")
@@ -41,6 +43,10 @@ app.include_router(mentors.router, prefix="/api")
 app.include_router(admin.router, prefix="/api")
 app.include_router(analytics.router, prefix="/api")
 app.include_router(chat.router, prefix="/api")
+app.include_router(documents.router, prefix="/api")
+app.include_router(feedback.router, prefix="/api")
+
+
 
 
 @app.get("/api/health")

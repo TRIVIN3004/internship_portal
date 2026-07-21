@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { 
   Shield, Users, GraduationCap, Calendar, Award, 
-  UserPlus, CheckCircle, AlertTriangle, Activity, Loader
+  UserPlus, CheckCircle, AlertTriangle, Activity, Loader,
+  MessageSquare, Star, Trash2, Edit3, Filter, Check
 } from 'lucide-react';
 
 export default function AdminDashboard() {
@@ -11,6 +12,12 @@ export default function AdminDashboard() {
   // Dashboard states
   const [students, setStudents] = useState([]);
   const [mentors, setMentors] = useState([]);
+  const [feedbacks, setFeedbacks] = useState([]);
+  const [feedbackStatusFilter, setFeedbackStatusFilter] = useState('all');
+  const [feedbackCategoryFilter, setFeedbackCategoryFilter] = useState('all');
+  const [activeNoteEditId, setActiveNoteEditId] = useState(null);
+  const [adminNoteText, setAdminNoteText] = useState('');
+
   const [overview, setOverview] = useState({
     total_students: 0,
     total_mentors: 0,
@@ -29,6 +36,17 @@ export default function AdminDashboard() {
   
   const [certMessage, setCertMessage] = useState('');
   const [loading, setLoading] = useState(true);
+
+  const fetchFeedbacks = async () => {
+    try {
+      const res = await authenticatedFetch('/api/feedback/admin');
+      if (res.ok) {
+        setFeedbacks(await res.json());
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   const fetchData = async () => {
     try {
@@ -59,12 +77,16 @@ export default function AdminDashboard() {
           setSelectedMentorId(String(mentData[0].id));
         }
       }
+
+      // Feedbacks
+      fetchFeedbacks();
     } catch (err) {
       setMappingError('Error fetching admin data.');
     } finally {
       setLoading(false);
     }
   };
+
 
   useEffect(() => {
     fetchData();
@@ -116,6 +138,63 @@ export default function AdminDashboard() {
       setMappingError('Network error rendering PDF.');
     }
   };
+
+  const handleUpdateFeedback = async (id, status, notes) => {
+    setMappingMessage('');
+    setMappingError('');
+    try {
+      const res = await authenticatedFetch(`/api/feedback/admin/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status, admin_notes: notes })
+      });
+      if (res.ok) {
+        setMappingMessage(`Feedback status updated to '${status}'`);
+        setActiveNoteEditId(null);
+        setAdminNoteText('');
+        fetchFeedbacks();
+      } else {
+        const err = await res.json();
+        setMappingError(err.detail || 'Failed to update feedback.');
+      }
+    } catch (err) {
+      setMappingError('Error updating feedback.');
+    }
+  };
+
+  const handleDeleteFeedback = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this feedback entry?')) return;
+    setMappingMessage('');
+    setMappingError('');
+    try {
+      const res = await authenticatedFetch(`/api/feedback/admin/${id}`, {
+        method: 'DELETE'
+      });
+      if (res.ok) {
+        setMappingMessage('Feedback entry deleted.');
+        fetchFeedbacks();
+      } else {
+        const err = await res.json();
+        setMappingError(err.detail || 'Failed to delete feedback.');
+      }
+    } catch (err) {
+      setMappingError('Error deleting feedback.');
+    }
+  };
+
+  const filteredFeedbacks = feedbacks.filter((f) => {
+    const matchStatus = feedbackStatusFilter === 'all' || f.status === feedbackStatusFilter;
+    const matchCategory = feedbackCategoryFilter === 'all' || f.category === feedbackCategoryFilter;
+    return matchStatus && matchCategory;
+  });
+
+  const avgFeedbackRating = feedbacks.length > 0
+    ? (feedbacks.reduce((acc, f) => acc + f.rating, 0) / feedbacks.length).toFixed(1)
+    : '5.0';
+
+  const pendingFeedbackCount = feedbacks.filter(f => f.status === 'pending').length;
+  const resolvedFeedbackCount = feedbacks.filter(f => f.status === 'resolved').length;
+
 
   if (loading && students.length === 0) {
     return (
@@ -347,6 +426,224 @@ export default function AdminDashboard() {
           </div>
 
         </div>
+
+        {/* User Feedback & Feature Suggestions Section */}
+        <section className="glass-panel p-6 rounded-2xl space-y-6">
+          <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-800/80 pb-4">
+            <div>
+              <h3 className="font-heading font-bold text-lg text-white flex items-center gap-2">
+                <MessageSquare size={20} className="text-cyan-400" /> Portal Feedback & Feature Suggestions
+              </h3>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Review ratings, feature requests, and improvement feedback submitted by students and mentors.
+              </p>
+            </div>
+
+            {/* Metrics */}
+            <div className="flex items-center gap-3">
+              <div className="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-center">
+                <span className="block text-[8px] font-bold text-slate-500 uppercase tracking-widest">Total Entries</span>
+                <span className="text-sm font-extrabold text-white">{feedbacks.length}</span>
+              </div>
+              <div className="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-center">
+                <span className="block text-[8px] font-bold text-slate-500 uppercase tracking-widest">Avg Rating</span>
+                <span className="text-sm font-extrabold text-yellow-400 flex items-center justify-center gap-1">
+                  <Star size={12} fill="#f59e0b" /> {avgFeedbackRating}
+                </span>
+              </div>
+              <div className="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-center">
+                <span className="block text-[8px] font-bold text-slate-500 uppercase tracking-widest">Pending Review</span>
+                <span className="text-sm font-extrabold text-amber-400">{pendingFeedbackCount}</span>
+              </div>
+              <div className="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-center">
+                <span className="block text-[8px] font-bold text-slate-500 uppercase tracking-widest">Resolved</span>
+                <span className="text-sm font-extrabold text-emerald-400">{resolvedFeedbackCount}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Filters Bar */}
+          <div className="flex flex-wrap items-center justify-between gap-4 bg-slate-900/60 p-3 rounded-xl border border-slate-800/80">
+            <div className="flex items-center gap-2">
+              <Filter size={14} className="text-slate-400" />
+              <span className="text-xs text-slate-400 font-bold">Status:</span>
+              {['all', 'pending', 'reviewed', 'resolved'].map((st) => (
+                <button
+                  key={st}
+                  onClick={() => setFeedbackStatusFilter(st)}
+                  className={`px-2.5 py-1 rounded text-[10px] font-bold uppercase transition ${
+                    feedbackStatusFilter === st
+                      ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30'
+                      : 'bg-slate-950 text-slate-500 hover:text-slate-300'
+                  }`}
+                >
+                  {st}
+                </button>
+              ))}
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-slate-400 font-bold">Category:</span>
+              <select
+                className="px-3 py-1.5 bg-slate-950 border border-slate-800 rounded text-xs text-slate-300 outline-none"
+                value={feedbackCategoryFilter}
+                onChange={(e) => setFeedbackCategoryFilter(e.target.value)}
+              >
+                <option value="all">All Categories</option>
+                <option value="Feature Request">Feature Request</option>
+                <option value="Bug Report">Bug Report</option>
+                <option value="UI / UX Improvement">UI / UX Improvement</option>
+                <option value="Performance">Performance</option>
+                <option value="General Feedback">General Feedback</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Feedbacks Grid / List */}
+          {filteredFeedbacks.length === 0 ? (
+            <p className="text-xs text-slate-500 py-8 text-center bg-slate-900/40 rounded-xl">
+              No feedback entries match the selected filters.
+            </p>
+          ) : (
+            <div className="grid grid-cols-1 gap-4">
+              {filteredFeedbacks.map((item) => {
+                const statusStyles = {
+                  pending: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
+                  reviewed: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
+                  resolved: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                };
+                const roleStyles = {
+                  student: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
+                  mentor: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20',
+                  admin: 'bg-purple-500/10 text-purple-400 border-purple-500/20'
+                };
+
+                return (
+                  <div key={item.id} className="p-4 bg-slate-900/80 border border-slate-800 rounded-xl space-y-3 hover:border-slate-700 transition">
+                    <div className="flex flex-wrap justify-between items-start gap-3">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h4 className="text-sm font-bold text-slate-100">{item.subject}</h4>
+                          <span className={`px-2 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider border ${roleStyles[item.role] || roleStyles.student}`}>
+                            {item.role}
+                          </span>
+                          <span className={`px-2 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider border ${statusStyles[item.status] || statusStyles.pending}`}>
+                            {item.status}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 text-[10px] text-slate-400 mt-1">
+                          <span>Submitter: <strong className="text-slate-200">{item.user_name}</strong> ({item.user_email})</span>
+                          <span>•</span>
+                          <span>Category: <strong className="text-slate-300">{item.category}</strong></span>
+                          <span>•</span>
+                          <span>Date: {new Date(item.created_at).toLocaleDateString()}</span>
+                        </div>
+                      </div>
+
+                      {/* Rating */}
+                      <div className="flex items-center gap-1 text-yellow-400 bg-slate-950 px-2.5 py-1 rounded border border-slate-800">
+                        {[1, 2, 3, 4, 5].map((s) => (
+                          <Star key={s} size={12} fill={s <= item.rating ? '#f59e0b' : 'transparent'} className={s <= item.rating ? 'text-yellow-500' : 'text-slate-700'} />
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Message content */}
+                    <div className="p-3 bg-slate-950/60 rounded border border-slate-800/80 text-xs text-slate-300 leading-relaxed">
+                      {item.message}
+                    </div>
+
+                    {/* Admin Response Note */}
+                    {item.admin_notes && activeNoteEditId !== item.id && (
+                      <div className="p-2.5 bg-cyan-950/20 border-l-2 border-l-cyan-500 rounded text-xs text-slate-300 flex justify-between items-center">
+                        <div>
+                          <strong className="block text-[9px] text-cyan-400 uppercase tracking-wider mb-0.5">Admin Response Note:</strong>
+                          {item.admin_notes}
+                        </div>
+                        <button
+                          onClick={() => { setActiveNoteEditId(item.id); setAdminNoteText(item.admin_notes || ''); }}
+                          className="p-1 text-slate-400 hover:text-white"
+                          title="Edit response note"
+                        >
+                          <Edit3 size={13} />
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Inline note edit form */}
+                    {activeNoteEditId === item.id && (
+                      <div className="p-3 bg-slate-950 rounded border border-slate-800 space-y-2">
+                        <label className="block text-[9px] font-bold text-cyan-400 uppercase tracking-wider">
+                          Add / Edit Admin Response Note
+                        </label>
+                        <input
+                          type="text"
+                          className="w-full px-3 py-1.5 bg-slate-900 border border-slate-800 rounded text-xs text-slate-200 outline-none"
+                          placeholder="e.g. Approved and planned for next sprint update..."
+                          value={adminNoteText}
+                          onChange={(e) => setAdminNoteText(e.target.value)}
+                        />
+                        <div className="flex gap-2 justify-end">
+                          <button
+                            onClick={() => setActiveNoteEditId(null)}
+                            className="px-2.5 py-1 text-[10px] text-slate-500 font-bold hover:text-slate-400"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            onClick={() => handleUpdateFeedback(item.id, item.status, adminNoteText)}
+                            className="px-3 py-1 bg-cyan-600 hover:bg-cyan-500 text-white text-[10px] font-bold rounded"
+                          >
+                            Save Note
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Actions Bar */}
+                    <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-slate-800/60">
+                      <div className="flex items-center gap-2">
+                        {item.status !== 'reviewed' && (
+                          <button
+                            onClick={() => handleUpdateFeedback(item.id, 'reviewed', item.admin_notes)}
+                            className="px-2.5 py-1 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/20 rounded text-[10px] font-bold transition"
+                          >
+                            Mark Reviewed
+                          </button>
+                        )}
+                        {item.status !== 'resolved' && (
+                          <button
+                            onClick={() => handleUpdateFeedback(item.id, 'resolved', item.admin_notes)}
+                            className="px-2.5 py-1 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 rounded text-[10px] font-bold transition"
+                          >
+                            Mark Resolved
+                          </button>
+                        )}
+                        {!item.admin_notes && activeNoteEditId !== item.id && (
+                          <button
+                            onClick={() => { setActiveNoteEditId(item.id); setAdminNoteText(''); }}
+                            className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-[10px] font-bold transition flex items-center gap-1"
+                          >
+                            <Edit3 size={11} /> Add Admin Note
+                          </button>
+                        )}
+                      </div>
+
+                      <button
+                        onClick={() => handleDeleteFeedback(item.id)}
+                        className="px-2.5 py-1 bg-slate-900 border border-slate-800 hover:border-red-500/30 text-slate-500 hover:text-red-400 rounded text-[10px] font-bold transition flex items-center gap-1"
+                        title="Delete feedback"
+                      >
+                        <Trash2 size={12} /> Delete
+                      </button>
+                    </div>
+
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </section>
 
       </div>
     </div>

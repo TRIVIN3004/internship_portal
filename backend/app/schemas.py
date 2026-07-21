@@ -222,3 +222,50 @@ class ChatContactOut(BaseModel):
     last_message: Optional[str] = None
     last_message_time: Optional[datetime.datetime] = None
 
+# --- Document Schemas ---
+class DocumentOut(BaseModel):
+    id: int
+    student_id: int
+    student_name: Optional[str] = None
+    title: str
+    description: Optional[str] = None
+    file_name: str
+    file_type: Optional[str] = None
+    file_size: int
+    uploaded_at: datetime.datetime
+    task_id: Optional[int] = None
+    task_title: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+# --- Feedback Schemas ---
+class FeedbackCreate(BaseModel):
+    category: str = Field(..., description="Feature Request, Bug Report, UI / UX Improvement, Performance, General")
+    rating: int = Field(5, ge=1, le=5)
+    subject: str
+    message: str
+
+class FeedbackUpdateStatus(BaseModel):
+    status: str = Field(..., description="pending, reviewed, or resolved")
+    admin_notes: Optional[str] = None
+
+class FeedbackOut(BaseModel):
+    id: int
+    user_id: int
+    user_email: Optional[str] = None
+    user_name: Optional[str] = None
+    role: str
+    category: str
+    rating: int
+    subject: str
+    message: str
+    status: str
+    admin_notes: Optional[str] = None
+    created_at: datetime.datetime
+
+    class Config:
+        from_attributes = True
+
+
+
