@@ -56,10 +56,25 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 # Base model class
 Base = declarative_base()
 
+_tables_initialized = False
+
+def ensure_tables_exist():
+    global _tables_initialized
+    if not _tables_initialized:
+        try:
+            # Import models to register them with Base before create_all
+            from . import models
+            Base.metadata.create_all(bind=engine)
+            _tables_initialized = True
+        except Exception as e:
+            print(f"Table initialization warning: {e}")
+
 # Dependency to inject DB session into endpoints
 def get_db():
+    ensure_tables_exist()
     db = SessionLocal()
     try:
         yield db
     finally:
         db.close()
+
