@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { 
   Shield, Users, GraduationCap, Calendar, Award, 
   UserPlus, CheckCircle, AlertTriangle, Activity, Loader,
-  MessageSquare, Star, Trash2, Edit3, Filter, Check
+  MessageSquare, Star, Trash2, Edit3, Filter, Check, Megaphone
 } from 'lucide-react';
 
 export default function AdminDashboard() {
@@ -17,6 +17,11 @@ export default function AdminDashboard() {
   const [feedbackCategoryFilter, setFeedbackCategoryFilter] = useState('all');
   const [activeNoteEditId, setActiveNoteEditId] = useState(null);
   const [adminNoteText, setAdminNoteText] = useState('');
+
+  // Announcements states
+  const [announcements, setAnnouncements] = useState([]);
+  const [annTitle, setAnnTitle] = useState('');
+  const [annContent, setAnnContent] = useState('');
 
   const [overview, setOverview] = useState({
     total_students: 0,
@@ -80,10 +85,23 @@ export default function AdminDashboard() {
 
       // Feedbacks
       fetchFeedbacks();
+      // Announcements
+      fetchAnnouncements();
     } catch (err) {
       setMappingError('Error fetching admin data.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchAnnouncements = async () => {
+    try {
+      const res = await authenticatedFetch('/api/announcements');
+      if (res.ok) {
+        setAnnouncements(await res.json());
+      }
+    } catch (err) {
+      console.error(err);
     }
   };
 
@@ -179,6 +197,54 @@ export default function AdminDashboard() {
       }
     } catch (err) {
       setMappingError('Error deleting feedback.');
+    }
+  };
+
+  const handleCreateAnnouncement = async (e) => {
+    e.preventDefault();
+    setMappingMessage('');
+    setMappingError('');
+    if (!annTitle.trim() || !annContent.trim()) {
+      setMappingError('Title and content are required.');
+      return;
+    }
+    try {
+      const res = await authenticatedFetch('/api/announcements', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: annTitle, content: annContent })
+      });
+      if (res.ok) {
+        setMappingMessage('Announcement broadcasted successfully!');
+        setAnnTitle('');
+        setAnnContent('');
+        fetchAnnouncements();
+      } else {
+        const err = await res.json();
+        setMappingError(err.detail || 'Failed to broadcast announcement.');
+      }
+    } catch (err) {
+      setMappingError('Error broadcasting announcement.');
+    }
+  };
+
+  const handleDeleteAnnouncement = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this announcement?')) return;
+    setMappingMessage('');
+    setMappingError('');
+    try {
+      const res = await authenticatedFetch(`/api/announcements/${id}`, {
+        method: 'DELETE'
+      });
+      if (res.ok) {
+        setMappingMessage('Announcement deleted.');
+        fetchAnnouncements();
+      } else {
+        const err = await res.json();
+        setMappingError(err.detail || 'Failed to delete announcement.');
+      }
+    } catch (err) {
+      setMappingError('Error deleting announcement.');
     }
   };
 
@@ -426,6 +492,93 @@ export default function AdminDashboard() {
           </div>
 
         </div>
+
+        {/* Announcements Section */}
+        <section className="glass-panel p-6 rounded-2xl space-y-6">
+          <div className="border-b border-slate-800/80 pb-4">
+            <h3 className="font-heading font-bold text-lg text-white flex items-center gap-2">
+              <Megaphone size={20} className="text-yellow-400" /> Broadcast Announcements
+            </h3>
+            <p className="text-xs text-slate-400 mt-0.5">
+              Send notifications and announcements to all students, mentors, and administrators.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Create Announcement */}
+            <div className="bg-slate-900/60 p-5 rounded-xl border border-slate-800 lg:col-span-1 space-y-4">
+              <h4 className="font-bold text-sm text-slate-200">Compose New Broadcast</h4>
+              <form onSubmit={handleCreateAnnouncement} className="space-y-4">
+                <div>
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-2">Announcement Title</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g., Weekly Technical Review Guidelines"
+                    className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 focus:border-yellow-500 rounded-lg text-sm text-slate-200 outline-none"
+                    value={annTitle}
+                    onChange={(e) => setAnnTitle(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-2">Notice Message Content</label>
+                  <textarea
+                    required
+                    rows={4}
+                    placeholder="Provide details about deadlines, events, or changes..."
+                    className="w-full p-4 bg-slate-950 border border-slate-800 focus:border-yellow-500 rounded-lg text-sm text-slate-200 outline-none"
+                    value={annContent}
+                    onChange={(e) => setAnnContent(e.target.value)}
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="w-full py-2.5 rounded bg-gradient-to-r from-yellow-600 to-amber-500 hover:from-yellow-500 hover:to-amber-400 text-slate-950 font-extrabold text-xs transition shadow-md hover:shadow-yellow-500/10"
+                >
+                  Broadcast Notice
+                </button>
+              </form>
+            </div>
+
+            {/* Active Announcements List */}
+            <div className="lg:col-span-2 space-y-4">
+              <h4 className="font-bold text-sm text-slate-200">Active Broadcasts ({announcements.length})</h4>
+              
+              <div className="space-y-4 max-h-[340px] overflow-y-auto pr-1">
+                {announcements.length === 0 ? (
+                  <p className="text-xs text-slate-500 py-12 text-center bg-slate-900/20 rounded-xl border border-slate-800/40">
+                    No active announcements.
+                  </p>
+                ) : (
+                  announcements.map((item) => (
+                    <div key={item.id} className="p-4 bg-slate-900/60 border border-slate-850 rounded-xl hover:border-slate-800 transition flex justify-between gap-4">
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <span className="w-2 h-2 rounded-full bg-yellow-400" />
+                          <h5 className="text-sm font-bold text-slate-100">{item.title}</h5>
+                        </div>
+                        <p className="text-xs text-slate-300 leading-relaxed font-mono whitespace-pre-wrap">{item.content}</p>
+                        <div className="text-[9px] text-slate-500 flex gap-2">
+                          <span>Posted by: <strong className="text-slate-400">{item.sender_name}</strong></span>
+                          <span>•</span>
+                          <span>Date: {new Date(item.created_at).toLocaleString()}</span>
+                        </div>
+                      </div>
+                      
+                      <button
+                        onClick={() => handleDeleteAnnouncement(item.id)}
+                        className="p-2 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg h-fit self-center transition"
+                        title="Delete Announcement"
+                      >
+                        <Trash2 size={15} />
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+        </section>
 
         {/* User Feedback & Feature Suggestions Section */}
         <section className="glass-panel p-6 rounded-2xl space-y-6">

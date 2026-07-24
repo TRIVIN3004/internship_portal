@@ -5,7 +5,7 @@ import FeedbackModal from '../components/FeedbackModal';
 import {
   Users, PlusSquare, FileText, CheckCircle, XCircle, Award,
   ShieldAlert, TrendingUp, Clock, RefreshCw, Lock, Layers,
-  AlertTriangle, Trash2, Paperclip, Download, Eye, UploadCloud, MessageSquare
+  AlertTriangle, Trash2, Paperclip, Download, Eye, UploadCloud, MessageSquare, Megaphone
 } from 'lucide-react';
 
 // ─── Batch configuration ────────────────────────────────────────────────────
@@ -40,6 +40,7 @@ export default function MentorDashboard() {
   const [documents, setDocuments] = useState([]);
   const [docStudentFilter, setDocStudentFilter] = useState('all');
   const [isFeedbackOpen, setIsFeedbackOpen]   = useState(false);
+  const [announcements, setAnnouncements]     = useState([]);
 
 
   const [taskTitle, setTaskTitle]         = useState('');
@@ -64,11 +65,12 @@ export default function MentorDashboard() {
     try {
       if (!silent) setLoading(true);
       setIsRefreshing(true);
-      const [studRes, tasksRes, reportsRes, docsRes] = await Promise.all([
+      const [studRes, tasksRes, reportsRes, docsRes, annRes] = await Promise.all([
         authenticatedFetch('/api/mentors/students'),
         authenticatedFetch('/api/mentors/tasks'),
         authenticatedFetch('/api/mentors/reports'),
         authenticatedFetch('/api/documents/mentor'),
+        authenticatedFetch('/api/announcements'),
       ]);
       if (studRes.ok) {
         const d = await studRes.json();
@@ -81,6 +83,7 @@ export default function MentorDashboard() {
       if (tasksRes.ok)   setTasks(await tasksRes.json());
       if (reportsRes.ok) setReports(await reportsRes.json());
       if (docsRes.ok)    setDocuments(await docsRes.json());
+      if (annRes.ok)     setAnnouncements(await annRes.json());
       setLastRefresh(new Date());
     } catch {
       if (!silent) setErrMessage('Error loading dashboard data.');
@@ -229,6 +232,29 @@ export default function MentorDashboard() {
         {/* Alerts */}
         {message    && <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm flex gap-3"><CheckCircle size={18} className="shrink-0" /><span>{message}</span></div>}
         {errMessage && <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm flex gap-3"><ShieldAlert size={18} className="shrink-0" /><span>{errMessage}</span></div>}
+
+        {/* Announcements Notification Board */}
+        {announcements.length > 0 && (
+          <section className="glass-panel p-5 rounded-2xl border-l-4 border-l-yellow-500 bg-yellow-500/5 relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-yellow-500/5 rounded-full blur-2xl pointer-events-none" />
+            <div className="flex items-center gap-2 mb-3">
+              <Megaphone size={18} className="text-yellow-400" />
+              <h4 className="font-heading font-extrabold text-sm text-yellow-400 uppercase tracking-wider">Broadcast Notices ({announcements.length})</h4>
+            </div>
+            
+            <div className="space-y-4 max-h-[220px] overflow-y-auto pr-1">
+              {announcements.map((ann) => (
+                <div key={ann.id} className="pb-3 border-b border-slate-800/60 last:border-b-0 last:pb-0 space-y-1">
+                  <h5 className="font-bold text-xs text-slate-100">{ann.title}</h5>
+                  <p className="text-xs text-slate-350 leading-relaxed font-mono whitespace-pre-wrap">{ann.content}</p>
+                  <span className="block text-[8px] text-slate-500">
+                    Broadcasted on {new Date(ann.created_at).toLocaleString()}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* ══════════════════════════════════════════════════════════════════
             § 1 — Student Intern Cards (with Batch + Score + Eligibility)

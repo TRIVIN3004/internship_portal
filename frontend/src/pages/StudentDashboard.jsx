@@ -5,7 +5,7 @@ import FeedbackModal from '../components/FeedbackModal';
 import { 
   User, Calendar, CheckSquare, Award, BookOpen, Send, 
   Smile, Activity, AlertCircle, FileText, CheckCircle, Clock,
-  UploadCloud, Eye, Download, Trash2, Paperclip, Lock, MessageSquare
+  UploadCloud, Eye, Download, Trash2, Paperclip, Lock, MessageSquare, Megaphone
 } from 'lucide-react';
 
 export default function StudentDashboard() {
@@ -19,6 +19,7 @@ export default function StudentDashboard() {
   const [recommendations, setRecommendations] = useState([]);
   const [documents, setDocuments] = useState([]);
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
+  const [announcements, setAnnouncements] = useState([]);
 
   
   // Form states
@@ -98,6 +99,12 @@ export default function StudentDashboard() {
       if (docsRes.ok) {
         const docsData = await docsRes.json();
         setDocuments(docsData);
+      }
+
+      // Announcements
+      const annRes = await authenticatedFetch('/api/announcements');
+      if (annRes.ok) {
+        setAnnouncements(await annRes.json());
       }
     } catch (err) {
       setErrMessage('Error loading dashboard data.');
@@ -364,7 +371,44 @@ export default function StudentDashboard() {
         </div>
       </nav>
 
-      <div className="max-w-7xl mx-auto px-6 mt-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="max-w-7xl mx-auto px-6 mt-8 space-y-6">
+        
+        {/* Messages */}
+        {message && (
+          <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm flex gap-3">
+            <CheckCircle size={18} /> <span>{message}</span>
+          </div>
+        )}
+        {errMessage && (
+          <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm flex gap-3">
+            <AlertCircle size={18} /> <span>{errMessage}</span>
+          </div>
+        )}
+
+        {/* Announcements Notification Board */}
+        {announcements.length > 0 && (
+          <section className="glass-panel p-5 rounded-2xl border-l-4 border-l-yellow-500 bg-yellow-500/5 relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-yellow-500/5 rounded-full blur-2xl pointer-events-none" />
+            <div className="flex items-center gap-2 mb-3">
+              <Megaphone size={18} className="text-yellow-400" />
+              <h4 className="font-heading font-extrabold text-sm text-yellow-400 uppercase tracking-wider">Broadcast Notices ({announcements.length})</h4>
+            </div>
+            
+            <div className="space-y-4 max-h-[220px] overflow-y-auto pr-1">
+              {announcements.map((ann) => (
+                <div key={ann.id} className="pb-3 border-b border-slate-800/60 last:border-b-0 last:pb-0 space-y-1">
+                  <h5 className="font-bold text-xs text-slate-100">{ann.title}</h5>
+                  <p className="text-xs text-slate-300 leading-relaxed font-mono whitespace-pre-wrap">{ann.content}</p>
+                  <span className="block text-[8px] text-slate-500">
+                    Broadcasted on {new Date(ann.created_at).toLocaleString()}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
         {/* LEFT COLUMN: Profile & Action Toggles */}
         <div className="space-y-8">
@@ -885,6 +929,7 @@ export default function StudentDashboard() {
             )}
           </div>
 
+        </div>
         </div>
 
       </div>

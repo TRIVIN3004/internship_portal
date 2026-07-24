@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .database import engine, Base
-from .routers import auth, students, mentors, admin, analytics, chat, documents, feedback
+from .routers import auth, students, mentors, admin, analytics, chat, documents, feedback, announcements
 
 # Initialize FastAPI App
 app = FastAPI(
@@ -52,6 +52,7 @@ app.include_router(analytics.router, prefix="/api")
 app.include_router(chat.router, prefix="/api")
 app.include_router(documents.router, prefix="/api")
 app.include_router(feedback.router, prefix="/api")
+app.include_router(announcements.router, prefix="/api")
 
 
 

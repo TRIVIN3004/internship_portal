@@ -193,4 +193,17 @@ class Feedback(Base):
     user = relationship("User", back_populates="feedbacks")
 
 
+class Announcement(Base):
+    __tablename__ = "announcements"
+
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String, nullable=False)
+    content = Column(Text, nullable=False)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    created_by_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+
+    created_by = relationship("User")
+
+
+
 

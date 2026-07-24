@@ -268,4 +268,22 @@ class FeedbackOut(BaseModel):
         from_attributes = True
 
 
+# --- Announcement Schemas ---
+class AnnouncementCreate(BaseModel):
+    title: str
+    content: str
+
+class AnnouncementOut(BaseModel):
+    id: int
+    title: str
+    content: str
+    created_at: datetime.datetime
+    created_by_id: int
+    sender_name: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+
+
 
