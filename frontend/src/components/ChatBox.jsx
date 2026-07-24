@@ -11,10 +11,6 @@ export default function ChatBox() {
   const [isOpen, setIsOpen] = useState(false);
   const [contacts, setContacts] = useState([]);
   const [selectedContact, setSelectedContact] = useState(null);
-  const selectedContactRef = useRef(null);
-  useEffect(() => {
-    selectedContactRef.current = selectedContact;
-  }, [selectedContact]);
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [totalUnread, setTotalUnread] = useState(0);
@@ -56,9 +52,13 @@ export default function ChatBox() {
         setContacts(data);
         
         // Auto select first contact if none selected
-        if (data.length > 0 && !selectedContactRef.current) {
-          setSelectedContact(data[0]);
-        }
+        setSelectedContact(prevSelected => {
+          if (prevSelected) {
+            const updated = data.find(c => c.user_id === prevSelected.user_id);
+            return updated || prevSelected;
+          }
+          return data.length > 0 ? data[0] : null;
+        });
         
         // Calculate total unread
         const sumUnread = data.reduce((acc, c) => acc + (c.unread_count || 0), 0);

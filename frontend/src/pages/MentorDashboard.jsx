@@ -47,11 +47,6 @@ export default function MentorDashboard() {
   const [taskStudentId, setTaskStudentId] = useState('');
   const [taskDueDate, setTaskDueDate]     = useState('');
 
-  const taskStudentIdRef = useRef('');
-  useEffect(() => {
-    taskStudentIdRef.current = taskStudentId;
-  }, [taskStudentId]);
-
   const [activeGradeTaskId, setActiveGradeTaskId] = useState(null);
   const [gradeScore, setGradeScore]               = useState(80);
   const [gradeFeedback, setGradeFeedback]         = useState('');
@@ -78,7 +73,10 @@ export default function MentorDashboard() {
       if (studRes.ok) {
         const d = await studRes.json();
         setStudents(d);
-        if (d.length > 0 && !taskStudentIdRef.current) setTaskStudentId(String(d[0].id));
+        setTaskStudentId(prevId => {
+          if (prevId) return prevId;
+          return d.length > 0 ? String(d[0].id) : '';
+        });
       }
       if (tasksRes.ok)   setTasks(await tasksRes.json());
       if (reportsRes.ok) setReports(await reportsRes.json());
