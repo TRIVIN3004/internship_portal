@@ -3,14 +3,13 @@ from datetime import datetime, timedelta
 from typing import Optional
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
-from jose import JWTError, jwt
-import bcrypt
+import jwt
 from sqlalchemy.orm import Session
 from .database import get_db
 from . import models, schemas
 
 # Secret configurations
-SECRET_KEY = os.getenv("JWT_SECRET", "super_secret_antigravity_key_12345")
+SECRET_KEY = os.getenv("JWT_SECRET", "super_secret_antigravity_key_12345_production_secure")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 1440 # 24 hours for comfortable project demonstration
 
@@ -47,7 +46,7 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
         if email is None or role is None:
             raise credentials_exception
         token_data = schemas.TokenData(email=email, role=role)
-    except JWTError:
+    except jwt.PyJWTError:
         raise credentials_exception
         
     user = db.query(models.User).filter(models.User.email == token_data.email).first()
