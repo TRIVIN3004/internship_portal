@@ -1,4 +1,6 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
+import traceback
 from fastapi.middleware.cors import CORSMiddleware
 from .database import engine, Base
 from .routers import auth, students, mentors, admin, analytics, chat, documents, feedback, announcements
@@ -9,6 +11,16 @@ app = FastAPI(
     description="Backend services, NLP report parsing, and ML student performance predictions.",
     version="1.0.0"
 )
+
+# Global Exception Handler for catching serverless errors gracefully
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    tb = traceback.format_exc()
+    print(f"Unhandled Exception on {request.url.path}: {exc}\n{tb}")
+    return JSONResponse(
+        status_code=500,
+        content={"detail": f"Server Error: {str(exc)}"}
+    )
 
 # Initialize database tables safely on startup
 @app.on_event("startup")
