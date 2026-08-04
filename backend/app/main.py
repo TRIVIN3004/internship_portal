@@ -44,16 +44,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include API endpoints
-app.include_router(auth.router, prefix="/api")
-app.include_router(students.router, prefix="/api")
-app.include_router(mentors.router, prefix="/api")
-app.include_router(admin.router, prefix="/api")
-app.include_router(analytics.router, prefix="/api")
-app.include_router(chat.router, prefix="/api")
-app.include_router(documents.router, prefix="/api")
-app.include_router(feedback.router, prefix="/api")
-app.include_router(announcements.router, prefix="/api")
+# Include API endpoints (both with /api prefix and root for robust Vercel serverless routing)
+all_routers = [auth.router, students.router, mentors.router, admin.router, analytics.router, chat.router, documents.router, feedback.router, announcements.router]
+for r in all_routers:
+    app.include_router(r, prefix="/api")
+    app.include_router(r)
 
 
 
