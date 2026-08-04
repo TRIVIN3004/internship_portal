@@ -25,6 +25,10 @@ if DATABASE_URL.startswith("postgres://"):
 elif DATABASE_URL.startswith("postgresql://") and not DATABASE_URL.startswith("postgresql+pg8000://"):
     DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+pg8000://", 1)
 
+# Strip sslmode parameter from query string as pg8000 does not accept sslmode keyword arg
+if "pg8000" in DATABASE_URL:
+    DATABASE_URL = DATABASE_URL.replace("?sslmode=require", "").replace("&sslmode=require", "")
+
 from sqlalchemy.pool import NullPool
 
 # Dynamically set connection arguments based on database engine
