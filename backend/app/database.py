@@ -30,18 +30,23 @@ if is_vercel and DATABASE_URL.startswith("postgresql://"):
         separator = "&" if "?" in DATABASE_URL else "?"
         DATABASE_URL = f"{DATABASE_URL}{separator}sslmode=require"
 
+from sqlalchemy.pool import NullPool
+
 # Dynamically set connection arguments based on database engine
 is_sqlite = DATABASE_URL.startswith("sqlite")
 connect_args = {"check_same_thread": False} if is_sqlite else {}
 
 engine_kwargs = {"connect_args": connect_args}
 if not is_sqlite:
-    engine_kwargs.update({
-        "pool_pre_ping": True,
-        "pool_recycle": 300,
-        "pool_size": 5,
-        "max_overflow": 10
-    })
+    if is_vercel:
+        engine_kwargs["poolclass"] = NullPool
+    else:
+        engine_kwargs.update({
+            "pool_pre_ping": True,
+            "pool_recycle": 300,
+            "pool_size": 5,
+            "max_overflow": 10
+        })
 
 # Engine configuration
 engine = create_engine(
