@@ -46,11 +46,15 @@ export const AuthProvider = ({ children }) => {
     if (!response.ok) {
       let errorMessage = 'Failed to authenticate';
       try {
-        const err = await response.json();
-        errorMessage = err.detail || errorMessage;
-      } catch {
         const text = await response.text();
-        errorMessage = text || 'Server error occurred during login.';
+        try {
+          const err = JSON.parse(text);
+          errorMessage = err.detail || errorMessage;
+        } catch {
+          errorMessage = text || errorMessage;
+        }
+      } catch {
+        // fallback
       }
       throw new Error(errorMessage);
     }
@@ -92,11 +96,15 @@ export const AuthProvider = ({ children }) => {
     if (!response.ok) {
       let errorMessage = 'Registration failed';
       try {
-        const err = await response.json();
-        errorMessage = err.detail || errorMessage;
-      } catch {
         const text = await response.text();
-        errorMessage = text || 'Server error occurred during registration.';
+        try {
+          const err = JSON.parse(text);
+          errorMessage = err.detail || errorMessage;
+        } catch {
+          errorMessage = text || errorMessage;
+        }
+      } catch {
+        // fallback
       }
       throw new Error(errorMessage);
     }
