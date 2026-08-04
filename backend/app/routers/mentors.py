@@ -205,3 +205,60 @@ def review_daily_report(
     db.refresh(report)
     
     return report
+
+@router.get("/me/attendance", response_model=List[schemas.MentorAttendanceOut])
+def get_mentor_own_attendance(mentor: models.MentorProfile = Depends(auth.get_current_active_mentor)):
+    return mentor.attendance_records
+
+@router.post("/me/attendance", response_model=schemas.MentorAttendanceOut)
+def mark_mentor_attendance(
+    attendance_in: schemas.MentorAttendanceMark,
+    mentor: models.MentorProfile = Depends(auth.get_current_active_mentor),
+    db: Session = Depends(get_db)
+):
+    today = datetime.date.today()
+    existing = db.query(models.MentorAttendance).filter(
+        models.MentorAttendance.mentor_id == mentor.id,
+        models.MentorAttendance.date == today
+    ).first()
+    
+    if existing:
+        raise HTTPException(
+            status_code=400,
+            detail="Attendance already marked for today"
+        )
+        
+    new_attendance = models.MentorAttendance(
+        mentor_id=mentor.id,
+        date=today,
+        status=attendance_in.status
+    )
+    
+    db.add(new_attendance)
+    db.commit()
+    db.refresh(new_attendance)
+    
+    return new_attendance
+
+@router.get("/students/attendance")
+def get_assigned_students_daily_attendance(
+    mentor: models.MentorProfile = Depends(auth.get_current_active_mentor),
+    db: Session = Depends(get_db)
+):
+    student_ids = [s.id for s in mentor.students]
+    student_map = {s.id: s.name for s in mentor.students}
+    records = db.query(models.Attendance).filter(
+        models.Attendance.student_id.in_(student_ids)
+    ).order_by(models.Attendance.date.desc(), models.Attendance.marked_at.desc()).all()
+    
+    res = []
+    for r in records:
+        res.append({
+            "id": r.id,
+            "student_id": r.student_id,
+            "student_name": student_map.get(r.student_id, "Unknown"),
+            "date": r.date,
+            "status": r.status,
+            "marked_at": r.marked_at
+        })
+    return res

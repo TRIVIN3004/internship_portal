@@ -12,6 +12,7 @@ export default function AdminDashboard() {
   // Dashboard states
   const [students, setStudents] = useState([]);
   const [mentors, setMentors] = useState([]);
+  const [mentorDailyAttendance, setMentorDailyAttendance] = useState([]);
   const [feedbacks, setFeedbacks] = useState([]);
   const [feedbackStatusFilter, setFeedbackStatusFilter] = useState('all');
   const [feedbackCategoryFilter, setFeedbackCategoryFilter] = useState('all');
@@ -53,6 +54,17 @@ export default function AdminDashboard() {
     }
   };
 
+  const fetchMentorAttendance = async () => {
+    try {
+      const res = await authenticatedFetch('/api/admin/mentors/attendance');
+      if (res.ok) {
+        setMentorDailyAttendance(await res.json());
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   const fetchData = async () => {
     try {
       setLoading(true);
@@ -85,6 +97,8 @@ export default function AdminDashboard() {
 
       // Feedbacks
       fetchFeedbacks();
+      // Mentor daily attendance
+      fetchMentorAttendance();
       // Announcements
       fetchAnnouncements();
     } catch (err) {
@@ -492,6 +506,120 @@ export default function AdminDashboard() {
           </div>
 
         </div>
+
+        {/* ══════════════════════════════════════════════════════════════════
+            § Mentor Attendance Monitoring & Watch Board (Admin View)
+            ══════════════════════════════════════════════════════════════════ */}
+        <section className="glass-panel p-6 rounded-2xl space-y-6">
+          <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-800/80 pb-4">
+            <div>
+              <h3 className="font-heading font-bold text-lg text-white flex items-center gap-2">
+                <GraduationCap size={20} className="text-cyan-400" /> Academic Mentors & Attendance Directory
+              </h3>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Watch daily mentor attendance logs, present counts, and overall mentor attendance percentages.
+              </p>
+            </div>
+            <span className="px-3 py-1 rounded text-xs font-bold bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
+              Total Mentors: {mentors.length}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* Mentor Overview & Attendance Rates */}
+            <div className="bg-slate-900/60 p-5 rounded-xl border border-slate-800 space-y-4">
+              <h4 className="font-bold text-sm text-slate-200">Mentor Profiles & Attendance Rates</h4>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead>
+                    <tr className="border-b border-slate-800 text-slate-500 uppercase tracking-widest text-[9px]">
+                      <th className="pb-2">Mentor Name</th>
+                      <th className="pb-2">Department</th>
+                      <th className="pb-2">Present / Total</th>
+                      <th className="pb-2">Att. Rate</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800/50">
+                    {mentors.length === 0 ? (
+                      <tr>
+                        <td colSpan="4" className="text-center py-4 text-slate-500">No mentors registered.</td>
+                      </tr>
+                    ) : (
+                      mentors.map((m) => {
+                        const attRatePct = Math.round((m.attendance_rate || 1) * 100);
+                        return (
+                          <tr key={m.id} className="hover:bg-slate-800/30">
+                            <td className="py-2.5 font-bold text-slate-200">{m.name}</td>
+                            <td className="py-2.5 text-slate-400 text-[11px]">{m.department || 'General'}</td>
+                            <td className="py-2.5 text-slate-300 font-mono text-[11px]">
+                              {m.present_count || 0} / {m.total_attendance || 0} days
+                            </td>
+                            <td className="py-2.5">
+                              <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold ${
+                                attRatePct >= 90 ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
+                                attRatePct >= 75 ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20' :
+                                'bg-red-500/10 text-red-400 border border-red-500/20 animate-pulse'
+                              }`}>
+                                {attRatePct}%
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Daily Mentor Attendance Logs */}
+            <div className="bg-slate-900/60 p-5 rounded-xl border border-slate-800 space-y-4">
+              <div className="flex items-center justify-between">
+                <h4 className="font-bold text-sm text-slate-200">Daily Mentor Attendance Logs ({mentorDailyAttendance.length})</h4>
+                <span className="text-[10px] text-slate-500">Live attendance feed</span>
+              </div>
+
+              {mentorDailyAttendance.length === 0 ? (
+                <p className="text-xs text-slate-500 py-8 text-center bg-slate-950/40 rounded-lg">
+                  No mentor attendance records logged yet.
+                </p>
+              ) : (
+                <div className="max-h-[240px] overflow-y-auto border border-slate-800/80 rounded-lg">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-slate-950 text-slate-400 uppercase tracking-wider text-[9px] sticky top-0">
+                      <tr>
+                        <th className="py-2 px-3">Date</th>
+                        <th className="py-2 px-3">Mentor</th>
+                        <th className="py-2 px-3">Status</th>
+                        <th className="py-2 px-3">Marked Time</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-800/40">
+                      {mentorDailyAttendance.map((rec) => (
+                        <tr key={rec.id} className="hover:bg-slate-800/30">
+                          <td className="py-2 px-3 text-slate-300 font-mono text-[10px]">{rec.date}</td>
+                          <td className="py-2 px-3 font-semibold text-slate-200">{rec.mentor_name}</td>
+                          <td className="py-2 px-3">
+                            <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${
+                              rec.status === 'present' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
+                              rec.status === 'absent' ? 'bg-red-500/10 text-red-400 border border-red-500/20' :
+                              'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                            }`}>
+                              {rec.status}
+                            </span>
+                          </td>
+                          <td className="py-2 px-3 text-slate-500 text-[10px] font-mono">
+                            {new Date(rec.marked_at).toLocaleTimeString()}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
 
         {/* Announcements Section */}
         <section className="glass-panel p-6 rounded-2xl space-y-6">

@@ -85,7 +85,43 @@ def list_all_mentors(
     db: Session = Depends(get_db)
 ):
     mentors = db.query(models.MentorProfile).all()
-    return mentors
+    res = []
+    for m in mentors:
+        total_att = len(m.attendance_records)
+        present = sum(1 for a in m.attendance_records if a.status == "present")
+        att_rate = (present / total_att) if total_att > 0 else 1.0
+        res.append(schemas.MentorProfileOut(
+            id=m.id,
+            name=m.name,
+            department=m.department,
+            specialization=m.specialization,
+            attendance_rate=round(att_rate, 2),
+            total_attendance=total_att,
+            present_count=present
+        ))
+    return res
+
+@router.get("/mentors/attendance")
+def get_all_mentors_daily_attendance(
+    admin: models.User = Depends(auth.get_current_active_admin),
+    db: Session = Depends(get_db)
+):
+    records = db.query(models.MentorAttendance).order_by(
+        models.MentorAttendance.date.desc(), models.MentorAttendance.marked_at.desc()
+    ).all()
+    
+    res = []
+    for r in records:
+        res.append({
+            "id": r.id,
+            "mentor_id": r.mentor_id,
+            "mentor_name": r.mentor.name if r.mentor else "Unknown",
+            "department": r.mentor.department if r.mentor else "General",
+            "date": r.date,
+            "status": r.status,
+            "marked_at": r.marked_at
+        })
+    return res
 
 @router.post("/students/{student_id}/assign-mentor")
 def assign_mentor(

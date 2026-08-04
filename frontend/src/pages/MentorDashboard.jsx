@@ -42,6 +42,10 @@ export default function MentorDashboard() {
   const [isFeedbackOpen, setIsFeedbackOpen]   = useState(false);
   const [announcements, setAnnouncements]     = useState([]);
 
+  // Attendance states
+  const [mentorAttendance, setMentorAttendance] = useState([]);
+  const [mentorAttendanceStatus, setMentorAttendanceStatus] = useState('present');
+  const [studentDailyAttendance, setStudentDailyAttendance] = useState([]);
 
   const [taskTitle, setTaskTitle]         = useState('');
   const [taskDesc, setTaskDesc]           = useState('');
@@ -65,12 +69,14 @@ export default function MentorDashboard() {
     try {
       if (!silent) setLoading(true);
       setIsRefreshing(true);
-      const [studRes, tasksRes, reportsRes, docsRes, annRes] = await Promise.all([
+      const [studRes, tasksRes, reportsRes, docsRes, annRes, mentAttRes, studAttRes] = await Promise.all([
         authenticatedFetch('/api/mentors/students'),
         authenticatedFetch('/api/mentors/tasks'),
         authenticatedFetch('/api/mentors/reports'),
         authenticatedFetch('/api/documents/mentor'),
         authenticatedFetch('/api/announcements'),
+        authenticatedFetch('/api/mentors/me/attendance'),
+        authenticatedFetch('/api/mentors/students/attendance'),
       ]);
       if (studRes.ok) {
         const d = await studRes.json();
@@ -84,12 +90,34 @@ export default function MentorDashboard() {
       if (reportsRes.ok) setReports(await reportsRes.json());
       if (docsRes.ok)    setDocuments(await docsRes.json());
       if (annRes.ok)     setAnnouncements(await annRes.json());
+      if (mentAttRes.ok) setMentorAttendance(await mentAttRes.json());
+      if (studAttRes.ok) setStudentDailyAttendance(await studAttRes.json());
       setLastRefresh(new Date());
     } catch {
       if (!silent) setErrMessage('Error loading dashboard data.');
     } finally {
       setLoading(false);
       setIsRefreshing(false);
+    }
+  };
+
+  const handleMarkMentorAttendance = async (e) => {
+    e.preventDefault(); setMessage(''); setErrMessage('');
+    try {
+      const res = await authenticatedFetch('/api/mentors/me/attendance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: mentorAttendanceStatus })
+      });
+      if (res.ok) {
+        setMessage('Mentor attendance logged successfully!');
+        fetchData(true);
+      } else {
+        const err = await res.json();
+        setErrMessage(err.detail || 'Failed to log attendance.');
+      }
+    } catch {
+      setErrMessage('Error logging mentor attendance.');
     }
   };
 
@@ -255,6 +283,121 @@ export default function MentorDashboard() {
             </div>
           </section>
         )}
+
+        {/* ══════════════════════════════════════════════════════════════════
+            § Mentor Self Attendance & Student Daily Attendance Watch
+            ══════════════════════════════════════════════════════════════════ */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+          {/* Mark Mentor Attendance Card */}
+          <div className="glass-panel p-5 rounded-2xl space-y-4">
+            <div className="flex items-center justify-between">
+              <h4 className="font-heading font-extrabold text-sm text-white flex items-center gap-2">
+                <Clock size={16} className="text-cyan-400" /> My Attendance
+              </h4>
+              <span className="text-[10px] font-bold text-slate-400 bg-slate-900 border border-slate-800 px-2 py-0.5 rounded">
+                Today: {today}
+              </span>
+            </div>
+
+            <form onSubmit={handleMarkMentorAttendance} className="space-y-3">
+              <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400">Select Today's Status</label>
+              <div className="grid grid-cols-3 gap-2">
+                {['present', 'absent', 'leave'].map((st) => (
+                  <button
+                    key={st}
+                    type="button"
+                    onClick={() => setMentorAttendanceStatus(st)}
+                    className={`py-2 rounded-lg text-xs font-bold capitalize transition border ${
+                      mentorAttendanceStatus === st
+                        ? st === 'present' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40'
+                          : st === 'absent' ? 'bg-red-500/20 text-red-400 border-red-500/40'
+                          : 'bg-amber-500/20 text-amber-400 border-amber-500/40'
+                        : 'bg-slate-900 text-slate-400 border-slate-800 hover:border-slate-700'
+                    }`}
+                  >
+                    {st}
+                  </button>
+                ))}
+              </div>
+              <button
+                type="submit"
+                className="w-full py-2 rounded-lg bg-gradient-to-r from-cyan-600 to-blue-600 text-white font-bold text-xs hover:shadow-lg transition flex items-center justify-center gap-1.5"
+              >
+                <CheckCircle size={14} /> Log Mentor Attendance
+              </button>
+            </form>
+
+            <div className="pt-3 border-t border-slate-800/60">
+              <span className="block text-[9px] font-bold uppercase tracking-wider text-slate-500 mb-2">Recent Attendance Logs ({mentorAttendance.length})</span>
+              <div className="space-y-1.5 max-h-[120px] overflow-y-auto pr-1">
+                {mentorAttendance.length === 0 ? (
+                  <p className="text-[10px] text-slate-500">No attendance records logged yet.</p>
+                ) : (
+                  mentorAttendance.slice(0, 5).map((att) => (
+                    <div key={att.id} className="flex justify-between items-center text-[10px] p-1.5 rounded bg-slate-900/50 border border-slate-800/40">
+                      <span className="text-slate-300 font-medium">{att.date}</span>
+                      <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase ${
+                        att.status === 'present' ? 'bg-emerald-500/10 text-emerald-400' :
+                        att.status === 'absent' ? 'bg-red-500/10 text-red-400' : 'bg-amber-500/10 text-amber-400'
+                      }`}>
+                        {att.status}
+                      </span>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Student Daily Attendance Watch Board */}
+          <div className="glass-panel p-5 rounded-2xl lg:col-span-2 space-y-4">
+            <div className="flex items-center justify-between">
+              <h4 className="font-heading font-extrabold text-sm text-white flex items-center gap-2">
+                <Users size={16} className="text-emerald-400" /> Watch Student Daily Attendance ({studentDailyAttendance.length})
+              </h4>
+              <span className="text-[10px] text-slate-500">Live student log records</span>
+            </div>
+
+            {studentDailyAttendance.length === 0 ? (
+              <p className="text-xs text-slate-500 py-8 text-center">No daily attendance records logged by assigned students yet.</p>
+            ) : (
+              <div className="max-h-[260px] overflow-y-auto border border-slate-800/80 rounded-xl">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-900/90 text-slate-400 uppercase tracking-wider text-[9px] sticky top-0">
+                    <tr>
+                      <th className="py-2.5 px-3">Date</th>
+                      <th className="py-2.5 px-3">Student Name</th>
+                      <th className="py-2.5 px-3">Status</th>
+                      <th className="py-2.5 px-3">Marked Time</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800/40">
+                    {studentDailyAttendance.map((rec) => (
+                      <tr key={rec.id} className="hover:bg-slate-800/30 transition">
+                        <td className="py-2 px-3 text-slate-300 font-mono text-[10px]">{rec.date}</td>
+                        <td className="py-2 px-3 font-semibold text-slate-200">{rec.student_name}</td>
+                        <td className="py-2 px-3">
+                          <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${
+                            rec.status === 'present' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
+                            rec.status === 'absent' ? 'bg-red-500/10 text-red-400 border border-red-500/20' :
+                            'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                          }`}>
+                            {rec.status}
+                          </span>
+                        </td>
+                        <td className="py-2 px-3 text-slate-500 text-[10px] font-mono">
+                          {new Date(rec.marked_at).toLocaleTimeString()}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
+        </div>
 
         {/* ══════════════════════════════════════════════════════════════════
             § 1 — Student Intern Cards (with Batch + Score + Eligibility)

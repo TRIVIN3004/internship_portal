@@ -45,6 +45,9 @@ class MentorProfileOut(BaseModel):
     name: str
     department: Optional[str] = None
     specialization: Optional[str] = None
+    attendance_rate: Optional[float] = 1.0
+    total_attendance: Optional[int] = 0
+    present_count: Optional[int] = 0
 
     class Config:
         from_attributes = True

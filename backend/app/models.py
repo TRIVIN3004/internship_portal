@@ -54,6 +54,7 @@ class MentorProfile(Base):
     user = relationship("User", back_populates="mentor_profile")
     students = relationship("StudentProfile", back_populates="mentor")
     created_tasks = relationship("Task", back_populates="mentor")
+    attendance_records = relationship("MentorAttendance", back_populates="mentor", cascade="all, delete-orphan")
 
 class InternshipProgram(Base):
     __tablename__ = "internship_programs"
@@ -75,6 +76,17 @@ class Attendance(Base):
     marked_at = Column(DateTime, default=datetime.datetime.utcnow)
     
     student = relationship("StudentProfile", back_populates="attendance_records")
+
+class MentorAttendance(Base):
+    __tablename__ = "mentor_attendance"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    mentor_id = Column(Integer, ForeignKey("mentor_profiles.id", ondelete="CASCADE"), nullable=False)
+    date = Column(Date, nullable=False)
+    status = Column(String, nullable=False) # "present", "absent", "leave"
+    marked_at = Column(DateTime, default=datetime.datetime.utcnow)
+    
+    mentor = relationship("MentorProfile", back_populates="attendance_records")
 
 class DailyReport(Base):
     __tablename__ = "daily_reports"
