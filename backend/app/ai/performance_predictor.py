@@ -1,9 +1,5 @@
 import os
 import pickle
-import numpy as np
-import pandas as pd
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.model_selection import train_test_split
 from typing import Dict, Any, Tuple
 
 # Resolve the model path dynamically relative to the file location to work across serverless environments
@@ -13,8 +9,10 @@ MODEL_PATH = os.path.join(
     "performance_model.pkl"
 )
 
-def generate_synthetic_data(n_samples: int = 300) -> pd.DataFrame:
+def generate_synthetic_data(n_samples: int = 300):
     """Generates synthetic dataset of interns to train the Random Forest Classifier."""
+    import numpy as np
+    import pandas as pd
     np.random.seed(42)
     
     # Feature columns
@@ -55,31 +53,27 @@ def generate_synthetic_data(n_samples: int = 300) -> pd.DataFrame:
 
 def train_and_save_model():
     """Trains the Random Forest model and saves it as a pickle file."""
-    os.makedirs(os.path.dirname(MODEL_PATH), exist_ok=True)
-    
-    df = generate_synthetic_data()
-    X = df.drop(columns=["label"])
-    y = df["label"]
-    
-    # Train
-    clf = RandomForestClassifier(n_estimators=50, max_depth=6, random_state=42)
-    clf.fit(X, y)
-    
-    # Save model along with features list
-    model_data = {
-        "model": clf,
-        "features": list(X.columns)
-    }
-    with open(MODEL_PATH, "wb") as f:
-        pickle.dump(model_data, f)
-    print("AI Model: Random Forest Classifier trained and saved successfully.")
-
-# Initialize model training on first load if it does not exist
-if not os.path.exists(MODEL_PATH):
+    from sklearn.ensemble import RandomForestClassifier
     try:
-        train_and_save_model()
+        os.makedirs(os.path.dirname(MODEL_PATH), exist_ok=True)
+        
+        df = generate_synthetic_data()
+        X = df.drop(columns=["label"])
+        y = df["label"]
+        
+        # Train
+        clf = RandomForestClassifier(n_estimators=50, max_depth=6, random_state=42)
+        clf.fit(X, y)
+        
+        # Save model along with features list
+        model_data = {
+            "model": clf,
+            "features": list(X.columns)
+        }
+        with open(MODEL_PATH, "wb") as f:
+            pickle.dump(model_data, f)
     except Exception as e:
-        print(f"Error training model during initialization: {e}")
+        print(f"Model training notice: {e}")
 
 def load_model() -> Any:
     """Loads the pickled model, returns None if not found or errors out."""
@@ -128,6 +122,7 @@ def predict_student_performance(
         
     if model_data is not None:
         try:
+            import numpy as np
             clf = model_data["model"]
             # Prepare feature vector
             feature_vector = np.array([[

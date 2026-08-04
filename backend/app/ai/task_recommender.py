@@ -1,5 +1,3 @@
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
 from typing import List, Dict, Any
 
 # Curated bank of training tasks for recommendations if no custom task is provided
@@ -67,6 +65,8 @@ def recommend_tasks(student_skills: str, completed_task_titles: List[str] = None
     corpus = [student_skills.lower()] + [task["skills"].lower() for task in candidate_tasks]
     
     try:
+        from sklearn.feature_extraction.text import TfidfVectorizer
+        from sklearn.metrics.pairwise import cosine_similarity
         vectorizer = TfidfVectorizer()
         tfidf_matrix = vectorizer.fit_transform(corpus)
         

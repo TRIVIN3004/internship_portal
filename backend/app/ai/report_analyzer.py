@@ -2,23 +2,9 @@ import re
 import math
 from typing import List, Dict, Any
 
-# Attempt to load NLTK VADER sentiment analyzer, fallback to rule-based if download fails
 VADER_AVAILABLE = False
-try:
-    import nltk
-    from nltk.sentiment.vader import SentimentIntensityAnalyzer
-    
-    # Try downloading vader_lexicon quietly
-    try:
-        nltk.download("vader_lexicon", quiet=True)
-        sia = SentimentIntensityAnalyzer()
-        VADER_AVAILABLE = True
-    except Exception:
-        pass
-except ImportError:
-    pass
 
-# Custom fallback sentiment rules for robustness (offline capability)
+# Custom sentiment rules for robust, fast execution (offline & serverless capability)
 POSITIVE_WORDS = {
     "completed", "solved", "fixed", "implemented", "learned", "successful",
     "improved", "gained", "achieved", "great", "smooth", "progressed", 

@@ -9,11 +9,6 @@ from ..database import get_db
 from .. import models, schemas, auth
 from .students import recalculate_student_metrics
 
-# ReportLab imports for certificate generation
-from reportlab.pdfgen import canvas
-from reportlab.lib.pagesizes import letter, landscape
-from reportlab.lib import colors
-
 router = APIRouter(prefix="/admin", tags=["Administrator"])
 
 @router.get("/students", response_model=List[schemas.StudentWithMetricsOut])
@@ -306,6 +301,10 @@ def create_pdf_certificate(
     grade: str
 ):
     import math
+    from reportlab.pdfgen import canvas
+    from reportlab.lib.pagesizes import letter, landscape
+    from reportlab.lib import colors
+
     # Setup canvas on landscape Letter size
     c = canvas.Canvas(filepath, pagesize=landscape(letter))
     width, height = landscape(letter) # 792 x 612
