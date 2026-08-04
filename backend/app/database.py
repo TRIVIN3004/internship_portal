@@ -16,19 +16,14 @@ if not is_vercel:
     os.makedirs("data", exist_ok=True)
 
 # Database connection URL (reads environment variable, fallbacks to Supabase PostgreSQL)
-DEFAULT_SUPABASE_URL = "postgresql://postgres.eyfpckbiggamoqcukdvg:Trivinsakthi%40123@aws-0-ap-southeast-1.pooler.supabase.com:6543/postgres?sslmode=require"
+DEFAULT_SUPABASE_URL = "postgresql+pg8000://postgres.eyfpckbiggamoqcukdvg:Trivinsakthi%40123@aws-0-ap-southeast-1.pooler.supabase.com:6543/postgres"
 DATABASE_URL = os.getenv("DATABASE_URL") or DEFAULT_SUPABASE_URL
 
-# Fix for PostgreSQL connection strings that might use postgres:// instead of postgresql://
+# Fix PostgreSQL connection strings to use pg8000 pure-python driver for Vercel compatibility
 if DATABASE_URL.startswith("postgres://"):
-    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
-
-# Serverless optimizations for Vercel
-if is_vercel and DATABASE_URL.startswith("postgresql://"):
-    # Force sslmode=require for secure serverless connections
-    if "sslmode" not in DATABASE_URL:
-        separator = "&" if "?" in DATABASE_URL else "?"
-        DATABASE_URL = f"{DATABASE_URL}{separator}sslmode=require"
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql+pg8000://", 1)
+elif DATABASE_URL.startswith("postgresql://") and not DATABASE_URL.startswith("postgresql+pg8000://"):
+    DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+pg8000://", 1)
 
 from sqlalchemy.pool import NullPool
 
