@@ -44,8 +44,15 @@ export const AuthProvider = ({ children }) => {
     });
 
     if (!response.ok) {
-      const err = await response.json();
-      throw new Error(err.detail || 'Failed to authenticate');
+      let errorMessage = 'Failed to authenticate';
+      try {
+        const err = await response.json();
+        errorMessage = err.detail || errorMessage;
+      } catch {
+        const text = await response.text();
+        errorMessage = text || 'Server error occurred during login.';
+      }
+      throw new Error(errorMessage);
     }
 
     const data = await response.json();
@@ -69,6 +76,8 @@ export const AuthProvider = ({ children }) => {
       profileId: data.profile_id || null,
       isAuthenticated: true,
     });
+
+    return data;
   };
 
   const register = async (userData) => {
@@ -81,8 +90,15 @@ export const AuthProvider = ({ children }) => {
     });
 
     if (!response.ok) {
-      const err = await response.json();
-      throw new Error(err.detail || 'Registration failed');
+      let errorMessage = 'Registration failed';
+      try {
+        const err = await response.json();
+        errorMessage = err.detail || errorMessage;
+      } catch {
+        const text = await response.text();
+        errorMessage = text || 'Server error occurred during registration.';
+      }
+      throw new Error(errorMessage);
     }
     return await response.json();
   };
