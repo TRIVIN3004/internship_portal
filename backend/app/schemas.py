@@ -288,5 +288,24 @@ class AnnouncementOut(BaseModel):
         from_attributes = True
 
 
+# --- Mentor Attendance Schemas ---
+class MentorAttendanceMark(BaseModel):
+    status: str = Field("Present", description="Present, Absent, Half-Day, On Leave")
+    location: Optional[str] = "Office / Remote"
+    notes: Optional[str] = None
+
+class MentorAttendanceOut(BaseModel):
+    id: int
+    mentor_id: int
+    date: datetime.date
+    status: str
+    location: Optional[str] = None
+    notes: Optional[str] = None
+    marked_at: datetime.datetime
+
+    class Config:
+        from_attributes = True
+
+
 
 
