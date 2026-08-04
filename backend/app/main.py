@@ -18,26 +18,15 @@ def startup_db():
         is_vercel = os.getenv("VERCEL") == "1"
         upload_dir = "/tmp/uploads" if is_vercel else os.path.join(os.getcwd(), "data", "uploads")
         os.makedirs(upload_dir, exist_ok=True)
+        if not is_vercel:
+            Base.metadata.create_all(bind=engine)
     except Exception as e:
-        print(f"Upload directory startup warning: {e}")
-        
-    try:
-        Base.metadata.create_all(bind=engine)
-    except Exception as e:
-        print(f"Database table initialization failed: {e}")
-
+        print(f"Startup initialization warning: {e}")
 
 # CORS configurations for frontend communication
-origins = [
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
-]
-
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

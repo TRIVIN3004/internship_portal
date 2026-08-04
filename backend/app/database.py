@@ -60,6 +60,9 @@ _tables_initialized = False
 def ensure_tables_exist():
     global _tables_initialized
     if not _tables_initialized:
+        if is_vercel:
+            _tables_initialized = True
+            return
         try:
             # Import models to register them with Base before create_all
             from . import models
