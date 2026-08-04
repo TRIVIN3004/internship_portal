@@ -15,10 +15,9 @@ is_vercel = os.getenv("VERCEL") == "1"
 if not is_vercel:
     os.makedirs("data", exist_ok=True)
 
-# Database connection URL (reads environment variable, fallbacks to SQLite)
-DATABASE_URL = os.getenv("DATABASE_URL")
-if not DATABASE_URL:
-    DATABASE_URL = "sqlite:////tmp/internship.db" if is_vercel else "sqlite:///./data/internship.db"
+# Database connection URL (reads environment variable, fallbacks to Supabase PostgreSQL)
+DEFAULT_SUPABASE_URL = "postgresql://postgres.eyfpckbiggamoqcukdvg:Trivinsakthi%40123@aws-0-ap-southeast-1.pooler.supabase.com:6543/postgres?sslmode=require"
+DATABASE_URL = os.getenv("DATABASE_URL") or DEFAULT_SUPABASE_URL
 
 # Fix for PostgreSQL connection strings that might use postgres:// instead of postgresql://
 if DATABASE_URL.startswith("postgres://"):
