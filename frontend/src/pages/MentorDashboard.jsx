@@ -1,14 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import ChatBox from '../components/ChatBox';
 import FeedbackModal from '../components/FeedbackModal';
 import {
   Users, PlusSquare, FileText, CheckCircle, XCircle, Award,
   ShieldAlert, TrendingUp, Clock, RefreshCw, Lock, Layers,
-  AlertTriangle, Trash2, Paperclip, Download, Eye, UploadCloud, MessageSquare, Megaphone
+  AlertTriangle, Trash2, Paperclip, Download, Eye, MessageSquare, Megaphone, ArrowRight, UserCheck
 } from 'lucide-react';
 
-// ─── Batch configuration ────────────────────────────────────────────────────
 const BATCH_CONFIG = {
   'Platinum Batch': { color: 'text-yellow-400',  bg: 'bg-yellow-500/10',  border: 'border-yellow-500/30',  icon: '🏆' },
   'Gold Batch':     { color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/30', icon: '🥇' },
@@ -16,7 +16,6 @@ const BATCH_CONFIG = {
   'Remedial Batch': { color: 'text-red-400',     bg: 'bg-red-500/10',     border: 'border-red-500/30',     icon: '⚠️' },
 };
 
-// ─── Task status display config ──────────────────────────────────────────────
 const STATUS_CONFIG = {
   assigned:  { label: 'Assigned',  cls: 'bg-blue-500/10 text-blue-400 border-blue-500/20' },
   submitted: { label: 'Submitted', cls: 'bg-amber-500/10 text-amber-400 border-amber-500/20 animate-pulse' },
@@ -121,7 +120,6 @@ export default function MentorDashboard() {
     }
   };
 
-
   useEffect(() => {
     fetchData();
     intervalRef.current = setInterval(() => fetchData(true), 30000);
@@ -207,13 +205,12 @@ export default function MentorDashboard() {
   };
 
   if (loading && students.length === 0) {
-    return <div className="min-h-screen flex items-center justify-center text-slate-400"><TrendingUp className="animate-spin text-blue-500 mr-3" /> Loading mentor dashboard...</div>;
+    return <div className="min-h-screen flex items-center justify-center text-slate-400 bg-slate-950"><TrendingUp className="animate-spin text-blue-500 mr-3" /> Loading mentor dashboard...</div>;
   }
 
   const today          = new Date().toISOString().split('T')[0];
   const pendingReports = reports.filter(r => r.status === 'pending');
   const filteredDocs   = documents.filter(d => docStudentFilter === 'all' || String(d.student_id) === String(docStudentFilter));
-
   const submittedTasks = tasks.filter(t => t.status === 'submitted');
 
   const taskCountsByStatus = tasks.reduce((acc, t) => {
@@ -227,13 +224,16 @@ export default function MentorDashboard() {
     return taskStatusFilter === 'all' || d === taskStatusFilter;
   });
 
+  // Calculate students needing attention
+  const atRiskStudents = students.filter(s => s.predicted_grade === 'At Risk' || (s.internship_score ?? 100) < 75 || s.attendance_rate < 0.75);
+
   return (
-    <div className="min-h-screen pb-16">
+    <div className="min-h-screen pb-16 bg-slate-950 text-slate-100 font-sans">
 
       {/* ── Nav ──────────────────────────────────────────────────────────── */}
-      <nav className="glass-panel sticky top-0 z-30 px-6 py-4 flex items-center justify-between">
+      <nav className="glass-panel sticky top-0 z-30 px-6 py-4 flex items-center justify-between border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-md">
         <span className="text-xl font-bold font-heading bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
-          NEXORA'S MENTOR
+          NEXORA'S MENTOR DASHBOARD
         </span>
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2 text-[10px] text-slate-500">
@@ -284,8 +284,137 @@ export default function MentorDashboard() {
           </section>
         )}
 
+        {/* Attention Summary Bar */}
+        <section className={`glass-panel p-5 rounded-2xl border-l-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 ${
+          atRiskStudents.length > 0 ? 'border-l-amber-500 bg-amber-500/5' : 'border-l-emerald-500 bg-emerald-500/5'
+        }`}>
+          <div className="flex items-center gap-3">
+            <div className={`p-2.5 rounded-xl ${atRiskStudents.length > 0 ? 'bg-amber-500/10 text-amber-400' : 'bg-emerald-500/10 text-emerald-400'}`}>
+              {atRiskStudents.length > 0 ? <AlertTriangle size={20} /> : <UserCheck size={20} />}
+            </div>
+            <div>
+              <h4 className="font-heading font-bold text-sm text-white">Which student needs my attention?</h4>
+              <p className="text-xs text-slate-400">
+                {atRiskStudents.length > 0
+                  ? `⚠️ ${atRiskStudents.length} student(s) currently require proactive review (Score < 75%, Low attendance, or At Risk).`
+                  : '✅ All mapped student interns are currently meeting baseline targets cleanly.'}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 text-xs">
+            <div className="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-300">
+              Pending Reports: <strong className="text-amber-400">{pendingReports.length}</strong>
+            </div>
+            <div className="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-300">
+              Submissions: <strong className="text-indigo-400">{submittedTasks.length}</strong>
+            </div>
+          </div>
+        </section>
+
         {/* ══════════════════════════════════════════════════════════════════
-            § Mentor Self Attendance & Student Daily Attendance Watch
+            SECTION 1 — MENTOR DASHBOARD / OVERVIEW: Compact Student Cards Grid
+            ══════════════════════════════════════════════════════════════════ */}
+        <section>
+          <div className="flex items-center justify-between mb-5">
+            <div>
+              <h3 className="font-heading font-extrabold text-xl text-white flex items-center gap-2">
+                <Users size={22} className="text-blue-400" /> Assigned Student Interns
+              </h3>
+              <p className="text-xs text-slate-400 mt-0.5">Compact summary overview of mapped students. Click "View Profile" to access student specific data.</p>
+            </div>
+            <span className="px-3 py-1 rounded-full text-xs font-bold bg-slate-900 border border-slate-800 text-slate-400">
+              Total Interns: {students.length}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {students.length === 0 ? (
+              <div className="glass-panel p-8 text-center md:col-span-3 text-slate-500 text-xs">
+                No students currently mapped by the Administrator.
+              </div>
+            ) : students.map((s) => {
+              const batch    = s.batch || 'Gold Batch';
+              const batchCfg = BATCH_CONFIG[batch] || BATCH_CONFIG['Gold Batch'];
+              const score    = s.internship_score ?? 100;
+              const eligible = s.eligible_for_completion !== false;
+              const barColor   = score >= 90 ? 'from-yellow-500 to-amber-400' : score >= 75 ? 'from-emerald-500 to-green-400' : score >= 60 ? 'from-cyan-500 to-blue-400' : 'from-red-600 to-red-400';
+              const scoreColor = score >= 90 ? 'text-yellow-400' : score >= 75 ? 'text-emerald-400' : score >= 60 ? 'text-cyan-400' : 'text-red-400';
+              const statusBadge = s.predicted_grade || 'On Track';
+
+              return (
+                <div key={s.id} className={`glass-panel p-6 rounded-2xl border-l-4 flex flex-col justify-between transition duration-300 hover:border-slate-700 ${
+                  statusBadge === 'Outstanding' ? 'border-l-emerald-500' :
+                  statusBadge === 'At Risk'    ? 'border-l-red-500' : 'border-l-cyan-500'}`}>
+
+                  <div className="space-y-4">
+                    {/* Header row */}
+                    <div className="flex justify-between items-start gap-3">
+                      <div>
+                        <h4 className="font-bold text-slate-100 text-base">{s.name}</h4>
+                        <p className="text-xs text-slate-400">{s.college}</p>
+                        <span className="inline-block text-[10px] text-cyan-400 font-semibold mt-0.5">
+                          {s.department || s.internship_domain || 'Engineering'}
+                        </span>
+                      </div>
+                      <div className="flex flex-col items-end gap-1.5 shrink-0">
+                        <span className={`px-2.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider border ${
+                          statusBadge === 'Outstanding' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
+                          statusBadge === 'At Risk'    ? 'bg-red-500/15 text-red-400 border-red-500/20 animate-pulse' :
+                          'bg-cyan-500/10 text-cyan-400 border-cyan-500/20'}`}>
+                          {statusBadge}
+                        </span>
+                        <span className={`px-2 py-0.5 rounded text-[9px] font-bold border ${batchCfg.bg} ${batchCfg.color} ${batchCfg.border}`}>
+                          {batchCfg.icon} {batch}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Internship Score bar */}
+                    <div>
+                      <div className="flex justify-between items-center mb-1">
+                        <span className="text-[9px] font-bold uppercase tracking-wider text-slate-500">Internship Score</span>
+                        <span className={`text-sm font-black font-heading ${scoreColor}`}>{score}%</span>
+                      </div>
+                      <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
+                        <div className={`h-full rounded-full bg-gradient-to-r ${barColor} transition-all duration-700`} style={{ width: `${score}%` }} />
+                      </div>
+                    </div>
+
+                    {/* KPI grid */}
+                    <div className="grid grid-cols-2 gap-3 pt-3 border-t border-slate-800/60 text-xs">
+                      <div><span className="block text-[8px] font-semibold text-slate-500 uppercase tracking-widest">Attendance</span><span className="text-slate-300 font-bold">{Math.round(s.attendance_rate * 100)}%</span></div>
+                      <div><span className="block text-[8px] font-semibold text-slate-500 uppercase tracking-widest">Tasks Met</span><span className="text-slate-300 font-bold">{Math.round(s.task_completion_rate * 100)}%</span></div>
+                      <div><span className="block text-[8px] font-semibold text-slate-500 uppercase tracking-widest">Report Quality</span><span className="text-slate-300 font-bold">{s.avg_report_quality}%</span></div>
+                      <div><span className="block text-[8px] font-semibold text-slate-500 uppercase tracking-widest">Success Prob</span><span className="text-emerald-400 font-bold">{Math.round(s.completion_probability * 100)}%</span></div>
+                    </div>
+
+                    {/* Certificate Eligibility banner */}
+                    <div className={`p-2 rounded text-[9px] font-semibold flex items-center gap-1.5 ${
+                      eligible ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400' : 'bg-red-500/10 border border-red-500/20 text-red-400'}`}>
+                      {eligible ? <CheckCircle size={12} /> : <ShieldAlert size={12} />}
+                      {eligible ? 'Eligible for Certificate' : 'Not Eligible (Score < 75%)'}
+                    </div>
+                  </div>
+
+                  {/* Prominent View Profile Button */}
+                  <div className="mt-5 pt-3 border-t border-slate-800/80">
+                    <Link
+                      to={`/mentor-dashboard/student/${s.id}`}
+                      className="w-full py-2.5 rounded-xl bg-gradient-to-r from-blue-600/20 to-cyan-600/20 hover:from-blue-600 hover:to-cyan-600 border border-blue-500/30 text-cyan-300 hover:text-white font-bold text-xs flex items-center justify-center gap-2 transition group"
+                    >
+                      <span>View Profile</span>
+                      <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
+                    </Link>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+
+        {/* ══════════════════════════════════════════════════════════════════
+            SECTION 2 — Mentor Self Attendance & Watch Student Attendance
             ══════════════════════════════════════════════════════════════════ */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
@@ -400,123 +529,37 @@ export default function MentorDashboard() {
         </div>
 
         {/* ══════════════════════════════════════════════════════════════════
-            § 1 — Student Intern Cards (with Batch + Score + Eligibility)
-            ══════════════════════════════════════════════════════════════════ */}
-        <section>
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-heading font-extrabold text-xl text-white flex items-center gap-2">
-              <Users size={20} className="text-blue-400" /> Assigned Student Interns
-            </h3>
-            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-900 border border-slate-800 text-slate-400">Total: {students.length}</span>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {students.length === 0 ? (
-              <p className="text-xs text-slate-500 py-6 text-center md:col-span-3">No students currently mapped by the Administrator.</p>
-            ) : students.map((s) => {
-              const batch    = s.batch || 'Gold Batch';
-              const batchCfg = BATCH_CONFIG[batch] || BATCH_CONFIG['Gold Batch'];
-              const score    = s.internship_score ?? 100;
-              const eligible = s.eligible_for_completion !== false;
-              const barColor = score >= 90 ? 'from-yellow-500 to-amber-400' : score >= 75 ? 'from-emerald-500 to-green-400' : score >= 60 ? 'from-cyan-500 to-blue-400' : 'from-red-600 to-red-400';
-              const scoreColor = score >= 90 ? 'text-yellow-400' : score >= 75 ? 'text-emerald-400' : score >= 60 ? 'text-cyan-400' : 'text-red-400';
-              return (
-                <div key={s.id} className={`glass-panel p-6 rounded-2xl border-l-4 transition duration-300 ${
-                  s.predicted_grade === 'Outstanding' ? 'border-l-emerald-500' :
-                  s.predicted_grade === 'At Risk'    ? 'border-l-red-500' : 'border-l-cyan-500'}`}>
-
-                  {/* Header row */}
-                  <div className="flex justify-between items-start gap-3">
-                    <div>
-                      <h4 className="font-bold text-slate-100 text-base">{s.name}</h4>
-                      <p className="text-[10px] text-slate-400">{s.college}</p>
-                    </div>
-                    <div className="flex flex-col items-end gap-1.5 shrink-0">
-                      <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider border ${
-                        s.predicted_grade === 'Outstanding' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
-                        s.predicted_grade === 'At Risk'    ? 'bg-red-500/15 text-red-400 border-red-500/20 animate-pulse' :
-                        'bg-cyan-500/10 text-cyan-400 border-cyan-500/20'}`}>
-                        {s.predicted_grade}
-                      </span>
-                      <span className={`px-2 py-0.5 rounded text-[9px] font-bold border ${batchCfg.bg} ${batchCfg.color} ${batchCfg.border}`}>
-                        {batchCfg.icon} {batch}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Internship Score bar */}
-                  <div className="mt-4">
-                    <div className="flex justify-between items-center mb-1.5">
-                      <span className="text-[9px] font-bold uppercase tracking-wider text-slate-500">Internship Score</span>
-                      <span className={`text-sm font-black font-heading ${scoreColor}`}>{score}%</span>
-                    </div>
-                    <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
-                      <div className={`h-full rounded-full bg-gradient-to-r ${barColor} transition-all duration-700`} style={{ width: `${score}%` }} />
-                    </div>
-                    {/* 75% marker line */}
-                    <div className="relative h-0 -mt-2">
-                      <div className="absolute left-[75%] top-0 w-px h-3 bg-slate-600 opacity-60" title="75% eligibility threshold" />
-                    </div>
-                  </div>
-
-                  {/* KPI grid */}
-                  <div className="grid grid-cols-2 gap-3 mt-5 pt-4 border-t border-slate-800/60 text-xs">
-                    <div><span className="block text-[8px] font-semibold text-slate-500 uppercase tracking-widest">Attendance</span><span className="text-slate-300 font-bold">{Math.round(s.attendance_rate * 100)}%</span></div>
-                    <div><span className="block text-[8px] font-semibold text-slate-500 uppercase tracking-widest">Tasks Met</span><span className="text-slate-300 font-bold">{Math.round(s.task_completion_rate * 100)}%</span></div>
-                    <div><span className="block text-[8px] font-semibold text-slate-500 uppercase tracking-widest">Report Quality</span><span className="text-slate-300 font-bold">{s.avg_report_quality}%</span></div>
-                    <div><span className="block text-[8px] font-semibold text-slate-500 uppercase tracking-widest">Success Prob</span><span className="text-emerald-400 font-bold">{Math.round(s.completion_probability * 100)}%</span></div>
-                  </div>
-
-                  {/* Eligibility banner */}
-                  <div className={`mt-3 p-2 rounded text-[9px] font-semibold flex items-center gap-1.5 ${
-                    eligible ? 'bg-emerald-500/8 border border-emerald-500/15 text-emerald-400' : 'bg-red-500/10 border border-red-500/20 text-red-400'}`}>
-                    {eligible ? <CheckCircle size={11} /> : <ShieldAlert size={11} />}
-                    {eligible ? '✅ Eligible for completion certificate' : `❌ Not eligible — score below 75%`}
-                  </div>
-
-                  {s.predicted_grade === 'At Risk' && (
-                    <div className="mt-2 p-2 rounded bg-red-500/10 border border-red-500/20 text-[9px] text-red-400 flex items-center gap-1.5">
-                      <ShieldAlert size={12} /> Proactive review recommended.
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </section>
-
-        {/* ══════════════════════════════════════════════════════════════════
-            § 2 — Assign Task + Pending Reports (2-column)
+            SECTION 3 — Assign Task + Pending Reports Quick Queue
             ══════════════════════════════════════════════════════════════════ */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
 
           {/* Assign Task Form */}
           <div className="glass-panel p-6 rounded-2xl">
             <h3 className="font-heading font-bold text-lg text-white mb-4 flex items-center gap-2">
-              <PlusSquare size={18} className="text-blue-400" /> Assign New Technical Task
+              <PlusSquare size={18} className="text-blue-400" /> Assign Technical Task
             </h3>
             <form onSubmit={handleAssignTask} className="space-y-4">
               <div>
                 <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-2">Select Intern Recipient</label>
-                <select required className="w-full px-4 py-2.5 bg-slate-900/80 border border-slate-800 focus:border-blue-500 rounded-lg text-sm text-slate-300 outline-none"
+                <select required className="w-full px-4 py-2.5 bg-slate-900 border border-slate-800 focus:border-blue-500 rounded-lg text-sm text-slate-300 outline-none"
                   value={taskStudentId} onChange={(e) => setTaskStudentId(e.target.value)}>
-                  {students.map(s => <option key={s.id} value={s.id}>{s.name} ({s.internship_domain})</option>)}
+                  {students.map(s => <option key={s.id} value={s.id}>{s.name} ({s.department || s.internship_domain})</option>)}
                 </select>
               </div>
               <div>
                 <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-2">Task Title</label>
-                <input type="text" required className="w-full px-4 py-2.5 bg-slate-900/80 border border-slate-800 focus:border-blue-500 rounded-lg text-sm text-slate-200 outline-none"
+                <input type="text" required className="w-full px-4 py-2.5 bg-slate-900 border border-slate-800 focus:border-blue-500 rounded-lg text-sm text-slate-200 outline-none"
                   placeholder="Supervised Classification using Random Forests" value={taskTitle} onChange={(e) => setTaskTitle(e.target.value)} />
               </div>
               <div>
                 <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-2">Instructions & Specifications</label>
-                <textarea required rows={3} className="w-full p-4 bg-slate-900/80 border border-slate-800 focus:border-blue-500 rounded-lg text-sm text-slate-200 outline-none"
+                <textarea required rows={3} className="w-full p-4 bg-slate-900 border border-slate-800 focus:border-blue-500 rounded-lg text-sm text-slate-200 outline-none"
                   placeholder="Outline step-by-step goals, datasets to source, and validation metric targets."
                   value={taskDesc} onChange={(e) => setTaskDesc(e.target.value)} />
               </div>
               <div>
                 <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-2">Deadline Date</label>
-                <input type="date" required min={today} className="w-full px-4 py-2.5 bg-slate-900/80 border border-slate-800 focus:border-blue-500 rounded-lg text-sm text-slate-200 outline-none"
+                <input type="date" required min={today} className="w-full px-4 py-2.5 bg-slate-900 border border-slate-800 focus:border-blue-500 rounded-lg text-sm text-slate-200 outline-none"
                   value={taskDueDate} onChange={(e) => setTaskDueDate(e.target.value)} />
               </div>
               <button type="submit" className="w-full py-2.5 rounded bg-gradient-to-r from-blue-600 to-cyan-600 text-white font-bold text-xs hover:shadow-lg transition">
@@ -525,7 +568,7 @@ export default function MentorDashboard() {
             </form>
           </div>
 
-          {/* Pending Reports */}
+          {/* Pending Reports Quick Queue */}
           <div className="glass-panel p-6 rounded-2xl">
             <h3 className="font-heading font-bold text-lg text-white mb-4 flex items-center gap-2">
               <FileText size={18} className="text-cyan-400" /> Pending Daily Reports ({pendingReports.length})
@@ -536,7 +579,7 @@ export default function MentorDashboard() {
               ) : pendingReports.map((rep) => {
                 const studentName = students.find(s => s.id === rep.student_id)?.name || 'Intern';
                 return (
-                  <div key={rep.id} className="p-4 bg-slate-900/80 border border-slate-800 rounded-xl space-y-2">
+                  <div key={rep.id} className="p-4 bg-slate-900 border border-slate-800 rounded-xl space-y-2">
                     <div className="flex justify-between items-center text-xs">
                       <span className="font-bold text-slate-200">{studentName}</span>
                       <span className="text-slate-500 text-[10px]">{rep.date}</span>
@@ -544,7 +587,7 @@ export default function MentorDashboard() {
                     <p className="text-[11px] text-slate-400 leading-relaxed font-mono">"{rep.content}"</p>
                     {rep.blockers && <p className="text-[10px] text-red-400 font-mono">Blockers: {rep.blockers}</p>}
                     <div className="flex justify-between items-center pt-2 border-t border-slate-800/40 text-[10px]">
-                      <span className="text-cyan-400 font-semibold">NLP Score: {rep.quality_score}% ({rep.key_phrases})</span>
+                      <span className="text-cyan-400 font-semibold">NLP Quality: {rep.quality_score}%</span>
                       <div className="flex gap-2">
                         <button onClick={() => handleReviewReport(rep.id, 'rejected')} className="p-1 hover:bg-red-500/10 text-red-500 rounded"><XCircle size={16} /></button>
                         <button onClick={() => handleReviewReport(rep.id, 'approved')} className="p-1 hover:bg-emerald-500/10 text-emerald-400 rounded"><CheckCircle size={16} /></button>
@@ -558,14 +601,16 @@ export default function MentorDashboard() {
         </div>
 
         {/* ══════════════════════════════════════════════════════════════════
-            § 3 — ALL Assigned Tasks: Full Visibility Status Board
+            SECTION 4 — ALL Assigned Tasks: Live Status Board
             ══════════════════════════════════════════════════════════════════ */}
         <section className="glass-panel p-6 rounded-2xl">
           <div className="flex flex-wrap items-center justify-between gap-4 mb-5">
-            <h3 className="font-heading font-bold text-lg text-white flex items-center gap-2">
-              <Layers size={18} className="text-indigo-400" /> All Assigned Tasks
-              <span className="text-[10px] font-normal text-slate-500 ml-1">— live status board</span>
-            </h3>
+            <div>
+              <h3 className="font-heading font-bold text-lg text-white flex items-center gap-2">
+                <Layers size={18} className="text-indigo-400" /> All Assigned Tasks Status Board
+              </h3>
+              <p className="text-xs text-slate-400">Complete task registry across all mapped student interns.</p>
+            </div>
             {/* Status filter pills */}
             <div className="flex flex-wrap gap-2">
               {['all', 'assigned', 'submitted', 'completed', 'failed', 'expired'].map(s => (
@@ -597,7 +642,8 @@ export default function MentorDashboard() {
                   {filteredTasks.map((task) => {
                     const ds = getTaskDisplayStatus(task);
                     const sc = STATUS_CONFIG[ds] || STATUS_CONFIG.assigned;
-                    const studentName = students.find(s => s.id === task.assigned_to_student_id)?.name || '—';
+                    const studentObj = students.find(s => s.id === task.assigned_to_student_id);
+                    const studentName = studentObj?.name || '—';
                     const isExpired = ds === 'expired';
                     return (
                       <tr key={task.id} className={`hover:bg-slate-900/40 transition ${isExpired ? 'opacity-70' : ''}`}>
@@ -605,7 +651,13 @@ export default function MentorDashboard() {
                           <span className={`font-semibold ${isExpired ? 'line-through text-slate-500' : 'text-slate-200'}`}>{task.title}</span>
                           <p className="text-[10px] text-slate-500 mt-0.5 max-w-xs truncate">{task.description}</p>
                         </td>
-                        <td className="py-3 pr-4 text-slate-300 font-medium">{studentName}</td>
+                        <td className="py-3 pr-4 font-medium text-slate-300">
+                          {studentObj ? (
+                            <Link to={`/mentor-dashboard/student/${studentObj.id}`} className="hover:text-cyan-400 underline decoration-slate-700">
+                              {studentName}
+                            </Link>
+                          ) : studentName}
+                        </td>
                         <td className="py-3 pr-4">
                           <div className={`flex items-center gap-1 text-[11px] ${isExpired ? 'text-red-400' : 'text-slate-400'}`}>
                             <Clock size={11} />{task.due_date}
@@ -641,9 +693,7 @@ export default function MentorDashboard() {
           )}
         </section>
 
-        {/* ══════════════════════════════════════════════════════════════════
-            § 4 — Inline Grader for Submitted Tasks
-            ══════════════════════════════════════════════════════════════════ */}
+        {/* Inline Grader for Submitted Tasks */}
         {submittedTasks.length > 0 && (
           <section className="glass-panel p-6 rounded-2xl">
             <h3 className="font-heading font-bold text-lg text-white mb-4 flex items-center gap-2">
@@ -701,7 +751,7 @@ export default function MentorDashboard() {
         )}
 
         {/* ══════════════════════════════════════════════════════════════════
-            § 5 — Student Submitted Documents
+            SECTION 5 — Student Submitted Documents Registry
             ══════════════════════════════════════════════════════════════════ */}
         <section className="glass-panel p-6 rounded-2xl space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-4">
@@ -751,9 +801,6 @@ export default function MentorDashboard() {
                             </span>
                           </div>
                         )}
-                        {doc.description && (
-                          <p className="text-[10px] text-slate-400 italic mt-1.5">{doc.description}</p>
-                        )}
                       </div>
                     </div>
                   </div>
@@ -784,4 +831,3 @@ export default function MentorDashboard() {
     </div>
   );
 }
-

@@ -8,6 +8,7 @@ import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import StudentDashboard from './pages/StudentDashboard';
 import MentorDashboard from './pages/MentorDashboard';
+import StudentProfilePage from './pages/StudentProfilePage';
 import AdminDashboard from './pages/AdminDashboard';
 
 // Route guards to protect pages based on login status and role
@@ -63,6 +64,15 @@ export default function App() {
             element={
               <ProtectedRoute allowedRoles={['mentor']}>
                 <MentorDashboard />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/mentor-dashboard/student/:studentId"
+            element={
+              <ProtectedRoute allowedRoles={['mentor']}>
+                <StudentProfilePage />
               </ProtectedRoute>
             }
           />
