@@ -6,7 +6,8 @@ import FeedbackModal from '../components/FeedbackModal';
 import {
   Users, PlusSquare, FileText, CheckCircle, XCircle, Award,
   ShieldAlert, TrendingUp, Clock, RefreshCw, Lock, Layers,
-  AlertTriangle, Trash2, Paperclip, Download, Eye, MessageSquare, Megaphone, ArrowRight, UserCheck
+  AlertTriangle, Trash2, Paperclip, Download, Eye, MessageSquare, Megaphone, ArrowRight, UserCheck,
+  Loader2, ShieldCheck
 } from 'lucide-react';
 
 const BATCH_CONFIG = {
@@ -64,6 +65,8 @@ export default function MentorDashboard() {
   // Attendance states
   const [mentorAttendance, setMentorAttendance] = useState([]);
   const [mentorAttendanceStatus, setMentorAttendanceStatus] = useState('present');
+  const [isLoggingMentorAttendance, setIsLoggingMentorAttendance] = useState(false);
+  const [mentorAttSuccessMsg, setMentorAttSuccessMsg] = useState('');
   const [studentDailyAttendance, setStudentDailyAttendance] = useState([]);
 
   const [taskTitle, setTaskTitle]         = useState('');
@@ -121,7 +124,8 @@ export default function MentorDashboard() {
   };
 
   const handleMarkMentorAttendance = async (e) => {
-    e.preventDefault(); setMessage(''); setErrMessage('');
+    e.preventDefault(); setMessage(''); setErrMessage(''); setMentorAttSuccessMsg('');
+    setIsLoggingMentorAttendance(true);
     try {
       const res = await authenticatedFetch('/api/mentors/me/attendance', {
         method: 'POST',
@@ -129,14 +133,17 @@ export default function MentorDashboard() {
         body: JSON.stringify({ status: mentorAttendanceStatus })
       });
       if (res.ok) {
-        setMessage('Mentor attendance logged successfully!');
+        setMentorAttSuccessMsg(`Mentor attendance recorded as ${mentorAttendanceStatus.toUpperCase()}!`);
         fetchData(true);
+        setTimeout(() => setMentorAttSuccessMsg(''), 6000);
       } else {
         const err = await res.json();
         setErrMessage(err.detail || 'Failed to log attendance.');
       }
     } catch {
       setErrMessage('Error logging mentor attendance.');
+    } finally {
+      setIsLoggingMentorAttendance(false);
     }
   };
 
@@ -439,7 +446,7 @@ export default function MentorDashboard() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
           {/* Mark Mentor Attendance Card */}
-          <div className="glass-panel p-5 rounded-2xl space-y-4">
+          <div className="glass-panel p-5 rounded-2xl space-y-4 relative overflow-hidden transition-all duration-300">
             <div className="flex items-center justify-between">
               <h4 className="font-heading font-extrabold text-sm text-white flex items-center gap-2">
                 <Clock size={16} className="text-cyan-400" /> My Attendance
@@ -449,6 +456,37 @@ export default function MentorDashboard() {
               </span>
             </div>
 
+            {/* Today's Logged Mentor Attendance Status Badge */}
+            {(() => {
+              const todayAtt = mentorAttendance.find(a => a.date === today);
+              if (!todayAtt) return null;
+              return (
+                <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl space-y-1 animate-fade-in shadow-lg shadow-emerald-500/5">
+                  <div className="flex items-center justify-between">
+                    <span className="flex items-center gap-1.5 text-xs font-bold text-emerald-400">
+                      <ShieldCheck size={16} className="text-emerald-400 animate-pulse" /> Attendance Logged Today
+                    </span>
+                    <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-extrabold uppercase border ${
+                      todayAtt.status === 'present' ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' :
+                      todayAtt.status === 'leave'   ? 'bg-amber-500/20 text-amber-300 border-amber-500/40' :
+                                                      'bg-red-500/20 text-red-300 border-red-500/40'
+                    }`}>
+                      {todayAtt.status}
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-slate-400">Entry recorded for {todayAtt.date}. Update status below if needed.</p>
+                </div>
+              );
+            })()}
+
+            {/* Inline Success Animation Toast */}
+            {mentorAttSuccessMsg && (
+              <div className="p-2.5 bg-gradient-to-r from-emerald-950/80 to-slate-900 border border-emerald-500/50 rounded-xl flex items-center gap-2 text-emerald-300 text-xs font-bold animate-bounce shadow-md">
+                <CheckCircle size={16} className="text-emerald-400 shrink-0" />
+                <span>{mentorAttSuccessMsg}</span>
+              </div>
+            )}
+
             <form onSubmit={handleMarkMentorAttendance} className="space-y-3">
               <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400">Select Today's Status</label>
               <div className="grid grid-cols-3 gap-2">
@@ -456,6 +494,7 @@ export default function MentorDashboard() {
                   <button
                     key={st}
                     type="button"
+                    disabled={isLoggingMentorAttendance}
                     onClick={() => setMentorAttendanceStatus(st)}
                     className={`py-2 rounded-lg text-xs font-bold capitalize transition border ${
                       mentorAttendanceStatus === st
@@ -471,9 +510,20 @@ export default function MentorDashboard() {
               </div>
               <button
                 type="submit"
-                className="w-full py-2 rounded-lg bg-gradient-to-r from-cyan-600 to-blue-600 text-white font-bold text-xs hover:shadow-lg transition flex items-center justify-center gap-1.5"
+                disabled={isLoggingMentorAttendance}
+                className="w-full py-2 rounded-lg bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold text-xs hover:shadow-lg transition flex items-center justify-center gap-2 disabled:opacity-50"
               >
-                <CheckCircle size={14} /> Log Mentor Attendance
+                {isLoggingMentorAttendance ? (
+                  <>
+                    <Loader2 size={16} className="animate-spin text-white" />
+                    <span>Logging Attendance...</span>
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle size={14} />
+                    <span>Log Mentor Attendance</span>
+                  </>
+                )}
               </button>
             </form>
 

@@ -5,7 +5,8 @@ import FeedbackModal from '../components/FeedbackModal';
 import { 
   User, Calendar, CheckSquare, Award, BookOpen, Send, 
   Smile, Activity, AlertCircle, FileText, CheckCircle, Clock,
-  UploadCloud, Eye, Download, Trash2, Paperclip, Lock, MessageSquare, Megaphone
+  UploadCloud, Eye, Download, Trash2, Paperclip, Lock, MessageSquare, Megaphone,
+  Loader2, ShieldCheck
 } from 'lucide-react';
 
 function formatDateTime(dateStr) {
@@ -45,6 +46,8 @@ export default function StudentDashboard() {
   const [reportBlockers, setReportBlockers] = useState('');
   const [reportHours, setReportHours] = useState(8);
   const [attendanceStatus, setAttendanceStatus] = useState('present');
+  const [isLoggingAttendance, setIsLoggingAttendance] = useState(false);
+  const [attendanceSuccessMsg, setAttendanceSuccessMsg] = useState('');
   const [activeTaskSubmitId, setActiveTaskSubmitId] = useState(null);
   const [taskSubmissionText, setTaskSubmissionText] = useState('');
 
@@ -278,6 +281,8 @@ export default function StudentDashboard() {
     e.preventDefault();
     setMessage('');
     setErrMessage('');
+    setAttendanceSuccessMsg('');
+    setIsLoggingAttendance(true);
     try {
       const res = await authenticatedFetch('/api/students/me/attendance', {
         method: 'POST',
@@ -285,14 +290,17 @@ export default function StudentDashboard() {
         body: JSON.stringify({ status: attendanceStatus })
       });
       if (res.ok) {
-        setMessage('Attendance logged successfully!');
+        setAttendanceSuccessMsg(`Successfully logged today's attendance as ${attendanceStatus.toUpperCase()}!`);
         fetchData();
+        setTimeout(() => setAttendanceSuccessMsg(''), 6000);
       } else {
         const err = await res.json();
         setErrMessage(err.detail || 'Failed to record attendance.');
       }
     } catch (err) {
       setErrMessage('Error executing operation.');
+    } finally {
+      setIsLoggingAttendance(false);
     }
   };
 
@@ -470,20 +478,59 @@ export default function StudentDashboard() {
           </div>
 
           {/* Mark Attendance Panel */}
-          <div className="glass-panel p-6 rounded-2xl">
-            <h4 className="font-heading font-bold text-white mb-4 flex items-center gap-2">
-              <Calendar size={18} className="text-cyan-400" /> Mark Daily Attendance
-            </h4>
+          <div className="glass-panel p-6 rounded-2xl relative overflow-hidden transition-all duration-300">
+            <div className="flex items-center justify-between mb-4">
+              <h4 className="font-heading font-bold text-white flex items-center gap-2">
+                <Calendar size={18} className="text-cyan-400" /> Mark Daily Attendance
+              </h4>
+              <span className="text-[10px] font-bold text-slate-400 bg-slate-900 border border-slate-800 px-2 py-0.5 rounded">
+                {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+              </span>
+            </div>
+
+            {/* Today's Logged Attendance Status Card (If already recorded) */}
+            {(() => {
+              const todayStr = new Date().toISOString().split('T')[0];
+              const todayAtt = attendance.find(a => a.date === todayStr);
+              if (!todayAtt) return null;
+              return (
+                <div className="mb-4 p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl space-y-1 animate-fade-in shadow-lg shadow-emerald-500/5">
+                  <div className="flex items-center justify-between">
+                    <span className="flex items-center gap-1.5 text-xs font-bold text-emerald-400">
+                      <ShieldCheck size={16} className="text-emerald-400 animate-pulse" /> Logged for Today
+                    </span>
+                    <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-extrabold uppercase border ${
+                      todayAtt.status === 'present' ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' :
+                      todayAtt.status === 'leave'   ? 'bg-amber-500/20 text-amber-300 border-amber-500/40' :
+                                                      'bg-red-500/20 text-red-300 border-red-500/40'
+                    }`}>
+                      {todayAtt.status}
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-slate-400">Entry confirmed in database. You can update your selection below if needed.</p>
+                </div>
+              );
+            })()}
+
+            {/* Card-local Success Animation Toast */}
+            {attendanceSuccessMsg && (
+              <div className="mb-4 p-3 bg-gradient-to-r from-emerald-950/80 to-slate-900 border border-emerald-500/50 rounded-xl flex items-center gap-2.5 text-emerald-300 text-xs font-bold animate-bounce shadow-lg shadow-emerald-950/50">
+                <CheckCircle size={18} className="text-emerald-400 shrink-0" />
+                <span>{attendanceSuccessMsg}</span>
+              </div>
+            )}
+
             <form onSubmit={handleMarkAttendance} className="space-y-4">
               <div className="grid grid-cols-3 gap-2">
                 {['present', 'leave', 'absent'].map((s) => (
                   <button
                     key={s}
                     type="button"
+                    disabled={isLoggingAttendance}
                     onClick={() => setAttendanceStatus(s)}
                     className={`py-2 px-3 rounded font-bold text-xs uppercase border transition ${
                       attendanceStatus === s
-                        ? 'bg-blue-600/10 border-blue-500 text-blue-400'
+                        ? 'bg-blue-600/20 border-blue-500 text-blue-400 shadow-md shadow-blue-500/10'
                         : 'bg-slate-900/60 border-slate-800 text-slate-500 hover:border-slate-700'
                     }`}
                   >
@@ -493,9 +540,20 @@ export default function StudentDashboard() {
               </div>
               <button
                 type="submit"
-                className="w-full py-2.5 rounded bg-gradient-to-r from-blue-600 to-cyan-600 text-white font-bold text-xs shadow-md transition"
+                disabled={isLoggingAttendance}
+                className="w-full py-2.5 rounded bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white font-bold text-xs shadow-md transition flex items-center justify-center gap-2 disabled:opacity-50"
               >
-                Log Today's Entry
+                {isLoggingAttendance ? (
+                  <>
+                    <Loader2 size={16} className="animate-spin text-white" />
+                    <span>Logging Attendance...</span>
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle size={14} />
+                    <span>Log Today's Entry</span>
+                  </>
+                )}
               </button>
             </form>
           </div>
