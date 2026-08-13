@@ -95,7 +95,7 @@ class TaskCreate(BaseModel):
     title: str
     description: str
     assigned_to_student_id: int
-    due_date: datetime.date
+    due_date: datetime.datetime
 
 class TaskSubmit(BaseModel):
     submission_text: str
@@ -111,7 +111,7 @@ class TaskOut(BaseModel):
     assigned_to_student_id: int
     created_by_mentor_id: Optional[int] = None
     status: str
-    due_date: datetime.date
+    due_date: datetime.datetime
     submitted_at: Optional[datetime.datetime] = None
     completed_at: Optional[datetime.datetime] = None
     score: Optional[float] = None

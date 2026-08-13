@@ -117,7 +117,7 @@ class Task(Base):
     assigned_to_student_id = Column(Integer, ForeignKey("student_profiles.id", ondelete="CASCADE"), nullable=False)
     created_by_mentor_id = Column(Integer, ForeignKey("mentor_profiles.id", ondelete="SET NULL"), nullable=True)
     status = Column(String, default="assigned") # "assigned", "submitted", "completed", "failed"
-    due_date = Column(Date, nullable=False)
+    due_date = Column(DateTime, nullable=False)
     submitted_at = Column(DateTime, nullable=True)
     completed_at = Column(DateTime, nullable=True)
     score = Column(Float, nullable=True) # Task grading out of 100

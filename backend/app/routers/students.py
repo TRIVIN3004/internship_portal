@@ -53,16 +53,19 @@ def submit_task(
         raise HTTPException(status_code=404, detail="Task not found or not assigned to you")
     
     # --- Deadline Enforcement ---
-    if task.due_date < datetime.date.today():
+    now = datetime.datetime.now()
+    due_dt = task.due_date if isinstance(task.due_date, datetime.datetime) else datetime.datetime.combine(task.due_date, datetime.time.max)
+    if due_dt < now:
         # Auto-mark as failed on deadline breach if still in assigned state
         if task.status == "assigned":
             task.status = "failed"
             db.commit()
             db.refresh(task)
             recalculate_student_metrics(student.id, db)
+        formatted_due = due_dt.strftime("%b %d, %Y, %I:%M %p")
         raise HTTPException(
             status_code=403,
-            detail=f"Submission deadline has passed ({task.due_date}). This task is now locked and cannot be submitted."
+            detail=f"Submission deadline has passed ({formatted_due}). This task is now locked and cannot be submitted."
         )
     
     # Block re-submission of already submitted/completed/failed tasks
@@ -230,15 +233,18 @@ def recalculate_student_metrics(student_id: int, db: Session):
     
     # 5. Late Submission Rate (ratio of tasks submitted after due date)
     late_submissions = 0
+    now = datetime.datetime.now()
     for t in student.tasks:
-        if t.submitted_at and t.submitted_at.date() > t.due_date:
+        t_due = t.due_date if isinstance(t.due_date, datetime.datetime) else datetime.datetime.combine(t.due_date, datetime.time.max)
+        if t.submitted_at and t.submitted_at > t_due:
             late_submissions += 1
     late_submission_ratio = (late_submissions / total_tasks) if total_tasks > 0 else 0.0
     
     # 6. Internship Score — start at 100, deduct per missed (expired+unsubmitted) task
     #    Auto-mark expired assigned tasks as failed first
     for t in student.tasks:
-        if t.status == "assigned" and t.due_date < today:
+        t_due = t.due_date if isinstance(t.due_date, datetime.datetime) else datetime.datetime.combine(t.due_date, datetime.time.max)
+        if t.status == "assigned" and now > t_due:
             t.status = "failed"
     db.flush()  # Persist status changes before counting
     

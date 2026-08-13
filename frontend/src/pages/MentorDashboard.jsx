@@ -24,9 +24,29 @@ const STATUS_CONFIG = {
   expired:   { label: 'Expired',   cls: 'bg-red-500/20 text-red-300 border-red-500/40' },
 };
 
+function formatDateTime(dateStr) {
+  if (!dateStr) return '—';
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr;
+    return d.toLocaleString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    });
+  } catch {
+    return dateStr;
+  }
+}
+
 function getTaskDisplayStatus(task) {
-  const today = new Date().toISOString().split('T')[0];
-  if (task.status === 'assigned' && task.due_date < today) return 'expired';
+  if (task.status === 'assigned' && task.due_date) {
+    const dueTime = new Date(task.due_date).getTime();
+    if (!isNaN(dueTime) && dueTime < Date.now()) return 'expired';
+  }
   return task.status;
 }
 
@@ -558,8 +578,8 @@ export default function MentorDashboard() {
                   value={taskDesc} onChange={(e) => setTaskDesc(e.target.value)} />
               </div>
               <div>
-                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-2">Deadline Date</label>
-                <input type="date" required min={today} className="w-full px-4 py-2.5 bg-slate-900 border border-slate-800 focus:border-blue-500 rounded-lg text-sm text-slate-200 outline-none"
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-2">Deadline Date & Time</label>
+                <input type="datetime-local" required min={new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)} className="w-full px-4 py-2.5 bg-slate-900 border border-slate-800 focus:border-blue-500 rounded-lg text-sm text-slate-200 outline-none"
                   value={taskDueDate} onChange={(e) => setTaskDueDate(e.target.value)} />
               </div>
               <button type="submit" className="w-full py-2.5 rounded bg-gradient-to-r from-blue-600 to-cyan-600 text-white font-bold text-xs hover:shadow-lg transition">
@@ -660,7 +680,7 @@ export default function MentorDashboard() {
                         </td>
                         <td className="py-3 pr-4">
                           <div className={`flex items-center gap-1 text-[11px] ${isExpired ? 'text-red-400' : 'text-slate-400'}`}>
-                            <Clock size={11} />{task.due_date}
+                            <Clock size={11} />{formatDateTime(task.due_date)}
                           </div>
                           {isExpired && <span className="flex items-center gap-0.5 text-[9px] text-red-400 mt-0.5"><Lock size={9} /> Locked</span>}
                         </td>

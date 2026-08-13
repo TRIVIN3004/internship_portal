@@ -32,6 +32,14 @@ def startup_db():
         os.makedirs(upload_dir, exist_ok=True)
         if not is_vercel:
             Base.metadata.create_all(bind=engine)
+        try:
+            from sqlalchemy import text
+            with engine.connect() as conn:
+                if "postgresql" in str(engine.url):
+                    conn.execute(text("ALTER TABLE tasks ALTER COLUMN due_date TYPE TIMESTAMP WITHOUT TIME ZONE USING due_date::timestamp;"))
+                    conn.commit()
+        except Exception as migration_err:
+            pass
     except Exception as e:
         print(f"Startup initialization warning: {e}")
 

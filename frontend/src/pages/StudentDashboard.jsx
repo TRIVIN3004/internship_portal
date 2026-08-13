@@ -8,6 +8,24 @@ import {
   UploadCloud, Eye, Download, Trash2, Paperclip, Lock, MessageSquare, Megaphone
 } from 'lucide-react';
 
+function formatDateTime(dateStr) {
+  if (!dateStr) return '—';
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr;
+    return d.toLocaleString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    });
+  } catch {
+    return dateStr;
+  }
+}
+
 export default function StudentDashboard() {
   const { authenticatedFetch, logout, name } = useAuth();
   
@@ -663,8 +681,7 @@ export default function StudentDashboard() {
                 <p className="text-xs text-slate-500 py-4 text-center">No tasks currently assigned by your mentor.</p>
               ) : (
                 tasks.map((task) => {
-                  const today = new Date().toISOString().split('T')[0];
-                  const isExpired = task.status === 'failed' || (task.status === 'assigned' && task.due_date < today);
+                  const isExpired = task.status === 'failed' || (task.status === 'assigned' && task.due_date && new Date(task.due_date).getTime() < Date.now());
                   return (
                     <div key={task.id} className={`p-4 bg-slate-900/80 border border-slate-800 rounded-xl space-y-3 ${isExpired ? 'opacity-70' : ''}`}>
                       <div className="flex flex-wrap justify-between items-start gap-2">
@@ -684,7 +701,7 @@ export default function StudentDashboard() {
 
                       <div className="flex flex-wrap justify-between items-center text-[10px] text-slate-500 pt-2 border-t border-slate-800/40">
                         <span className={`flex items-center gap-1 ${isExpired ? 'text-red-400' : ''}`}>
-                          <Clock size={12} /> Due: {task.due_date}
+                          <Clock size={12} /> Due: {formatDateTime(task.due_date)}
                         </span>
                         {task.score !== null && (
                           <span className="font-semibold text-emerald-400">Score: {task.score}/100</span>
