@@ -125,6 +125,10 @@ export default function MentorDashboard() {
 
   const handleMarkMentorAttendance = async (e) => {
     e.preventDefault(); setMessage(''); setErrMessage(''); setMentorAttSuccessMsg('');
+    if (mentorAttendance.some(a => a.date === today)) {
+      setErrMessage('Daily limit reached: Mentor attendance has already been logged for today.');
+      return;
+    }
     setIsLoggingMentorAttendance(true);
     try {
       const res = await authenticatedFetch('/api/mentors/me/attendance', {
@@ -456,76 +460,92 @@ export default function MentorDashboard() {
               </span>
             </div>
 
-            {/* Today's Logged Mentor Attendance Status Badge */}
+            {/* Today's Logged Mentor Attendance Status Badge & Form (Strict 1 Entry/Day Limit) */}
             {(() => {
               const todayAtt = mentorAttendance.find(a => a.date === today);
-              if (!todayAtt) return null;
+              const isAlreadyLogged = Boolean(todayAtt);
               return (
-                <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl space-y-1 animate-fade-in shadow-lg shadow-emerald-500/5">
-                  <div className="flex items-center justify-between">
-                    <span className="flex items-center gap-1.5 text-xs font-bold text-emerald-400">
-                      <ShieldCheck size={16} className="text-emerald-400 animate-pulse" /> Attendance Logged Today
-                    </span>
-                    <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-extrabold uppercase border ${
-                      todayAtt.status === 'present' ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' :
-                      todayAtt.status === 'leave'   ? 'bg-amber-500/20 text-amber-300 border-amber-500/40' :
-                                                      'bg-red-500/20 text-red-300 border-red-500/40'
-                    }`}>
-                      {todayAtt.status}
-                    </span>
-                  </div>
-                  <p className="text-[10px] text-slate-400">Entry recorded for {todayAtt.date}. Update status below if needed.</p>
-                </div>
+                <>
+                  {todayAtt && (
+                    <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl space-y-1 animate-fade-in shadow-lg shadow-emerald-500/5">
+                      <div className="flex items-center justify-between">
+                        <span className="flex items-center gap-1.5 text-xs font-bold text-emerald-400">
+                          <ShieldCheck size={16} className="text-emerald-400 animate-pulse" /> Logged for Today (Limit 1/Day)
+                        </span>
+                        <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-extrabold uppercase border ${
+                          todayAtt.status === 'present' ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' :
+                          todayAtt.status === 'leave'   ? 'bg-amber-500/20 text-amber-300 border-amber-500/40' :
+                                                          'bg-red-500/20 text-red-300 border-red-500/40'
+                        }`}>
+                          {todayAtt.status}
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-slate-400">Entry confirmed in database. Today's attendance limit reached.</p>
+                    </div>
+                  )}
+
+                  {/* Inline Success Animation Toast */}
+                  {mentorAttSuccessMsg && (
+                    <div className="p-2.5 bg-gradient-to-r from-emerald-950/80 to-slate-900 border border-emerald-500/50 rounded-xl flex items-center gap-2 text-emerald-300 text-xs font-bold animate-bounce shadow-md">
+                      <CheckCircle size={16} className="text-emerald-400 shrink-0" />
+                      <span>{mentorAttSuccessMsg}</span>
+                    </div>
+                  )}
+
+                  <form onSubmit={handleMarkMentorAttendance} className="space-y-3">
+                    <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400">Select Today's Status</label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {['present', 'absent', 'leave'].map((st) => (
+                        <button
+                          key={st}
+                          type="button"
+                          disabled={isLoggingMentorAttendance || isAlreadyLogged}
+                          onClick={() => setMentorAttendanceStatus(st)}
+                          className={`py-2 rounded-lg text-xs font-bold capitalize transition border ${
+                            (todayAtt ? todayAtt.status === st : mentorAttendanceStatus === st)
+                              ? st === 'present' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40'
+                                : st === 'absent' ? 'bg-red-500/20 text-red-400 border-red-500/40'
+                                : 'bg-amber-500/20 text-amber-400 border-amber-500/40'
+                              : 'bg-slate-900 text-slate-400 border-slate-800 hover:border-slate-700'
+                          } ${isAlreadyLogged ? 'cursor-not-allowed opacity-60' : ''}`}
+                        >
+                          {st}
+                        </button>
+                      ))}
+                    </div>
+
+                    {isAlreadyLogged ? (
+                      <button
+                        type="button"
+                        disabled
+                        className="w-full py-2 rounded-lg bg-slate-900 border border-slate-800 text-slate-400 font-bold text-xs flex items-center justify-center gap-2 cursor-not-allowed opacity-75"
+                      >
+                        <Lock size={14} className="text-emerald-400" />
+                        <span>Today's Entry Logged (1 Entry/Day Limit)</span>
+                      </button>
+                    ) : (
+                      <button
+                        type="submit"
+                        disabled={isLoggingMentorAttendance}
+                        className="w-full py-2 rounded-lg bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold text-xs hover:shadow-lg transition flex items-center justify-center gap-2 disabled:opacity-50"
+                      >
+                        {isLoggingMentorAttendance ? (
+                          <>
+                            <Loader2 size={16} className="animate-spin text-white" />
+                            <span>Logging Attendance...</span>
+                          </>
+                        ) : (
+                          <>
+                            <CheckCircle size={14} />
+                            <span>Log Mentor Attendance</span>
+                          </>
+                        )}
+                      </button>
+                    )}
+                  </form>
+                </>
               );
             })()}
-
-            {/* Inline Success Animation Toast */}
-            {mentorAttSuccessMsg && (
-              <div className="p-2.5 bg-gradient-to-r from-emerald-950/80 to-slate-900 border border-emerald-500/50 rounded-xl flex items-center gap-2 text-emerald-300 text-xs font-bold animate-bounce shadow-md">
-                <CheckCircle size={16} className="text-emerald-400 shrink-0" />
-                <span>{mentorAttSuccessMsg}</span>
-              </div>
-            )}
-
-            <form onSubmit={handleMarkMentorAttendance} className="space-y-3">
-              <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400">Select Today's Status</label>
-              <div className="grid grid-cols-3 gap-2">
-                {['present', 'absent', 'leave'].map((st) => (
-                  <button
-                    key={st}
-                    type="button"
-                    disabled={isLoggingMentorAttendance}
-                    onClick={() => setMentorAttendanceStatus(st)}
-                    className={`py-2 rounded-lg text-xs font-bold capitalize transition border ${
-                      mentorAttendanceStatus === st
-                        ? st === 'present' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40'
-                          : st === 'absent' ? 'bg-red-500/20 text-red-400 border-red-500/40'
-                          : 'bg-amber-500/20 text-amber-400 border-amber-500/40'
-                        : 'bg-slate-900 text-slate-400 border-slate-800 hover:border-slate-700'
-                    }`}
-                  >
-                    {st}
-                  </button>
-                ))}
-              </div>
-              <button
-                type="submit"
-                disabled={isLoggingMentorAttendance}
-                className="w-full py-2 rounded-lg bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold text-xs hover:shadow-lg transition flex items-center justify-center gap-2 disabled:opacity-50"
-              >
-                {isLoggingMentorAttendance ? (
-                  <>
-                    <Loader2 size={16} className="animate-spin text-white" />
-                    <span>Logging Attendance...</span>
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle size={14} />
-                    <span>Log Mentor Attendance</span>
-                  </>
-                )}
-              </button>
-            </form>
 
             <div className="pt-3 border-t border-slate-800/60">
               <span className="block text-[9px] font-bold uppercase tracking-wider text-slate-500 mb-2">Recent Attendance Logs ({mentorAttendance.length})</span>

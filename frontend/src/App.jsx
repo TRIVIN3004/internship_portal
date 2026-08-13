@@ -2,6 +2,8 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 
+import Background3D from './components/Background3D';
+
 // Pages imports
 import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
@@ -41,7 +43,10 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
 export default function App() {
   return (
     <AuthProvider>
-      <Router>
+      <div className="relative min-h-screen overflow-x-hidden">
+        <Background3D />
+        <div className="relative z-10">
+          <Router>
         <Routes>
           {/* Public Routes */}
           <Route path="/" element={<LandingPage />} />
@@ -90,7 +95,9 @@ export default function App() {
           {/* Catch-all Redirect */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
-      </Router>
+          </Router>
+        </div>
+      </div>
     </AuthProvider>
   );
 }

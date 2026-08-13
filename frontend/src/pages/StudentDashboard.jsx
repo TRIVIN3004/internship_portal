@@ -282,6 +282,13 @@ export default function StudentDashboard() {
     setMessage('');
     setErrMessage('');
     setAttendanceSuccessMsg('');
+
+    const todayStr = new Date().toISOString().split('T')[0];
+    if (attendance.some(a => a.date === todayStr)) {
+      setErrMessage('Daily limit reached: Attendance has already been logged for today.');
+      return;
+    }
+
     setIsLoggingAttendance(true);
     try {
       const res = await authenticatedFetch('/api/students/me/attendance', {
@@ -488,74 +495,91 @@ export default function StudentDashboard() {
               </span>
             </div>
 
-            {/* Today's Logged Attendance Status Card (If already recorded) */}
+            {/* Today's Logged Attendance Status Card & Form (Strict 1 Entry/Day Limit) */}
             {(() => {
               const todayStr = new Date().toISOString().split('T')[0];
               const todayAtt = attendance.find(a => a.date === todayStr);
-              if (!todayAtt) return null;
+              const isAlreadyLogged = Boolean(todayAtt);
+
               return (
-                <div className="mb-4 p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl space-y-1 animate-fade-in shadow-lg shadow-emerald-500/5">
-                  <div className="flex items-center justify-between">
-                    <span className="flex items-center gap-1.5 text-xs font-bold text-emerald-400">
-                      <ShieldCheck size={16} className="text-emerald-400 animate-pulse" /> Logged for Today
-                    </span>
-                    <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-extrabold uppercase border ${
-                      todayAtt.status === 'present' ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' :
-                      todayAtt.status === 'leave'   ? 'bg-amber-500/20 text-amber-300 border-amber-500/40' :
-                                                      'bg-red-500/20 text-red-300 border-red-500/40'
-                    }`}>
-                      {todayAtt.status}
-                    </span>
-                  </div>
-                  <p className="text-[10px] text-slate-400">Entry confirmed in database. You can update your selection below if needed.</p>
-                </div>
+                <>
+                  {todayAtt && (
+                    <div className="mb-4 p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl space-y-1 animate-fade-in shadow-lg shadow-emerald-500/5">
+                      <div className="flex items-center justify-between">
+                        <span className="flex items-center gap-1.5 text-xs font-bold text-emerald-400">
+                          <ShieldCheck size={16} className="text-emerald-400 animate-pulse" /> Logged for Today (Limit 1/Day)
+                        </span>
+                        <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-extrabold uppercase border ${
+                          todayAtt.status === 'present' ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' :
+                          todayAtt.status === 'leave'   ? 'bg-amber-500/20 text-amber-300 border-amber-500/40' :
+                                                          'bg-red-500/20 text-red-300 border-red-500/40'
+                        }`}>
+                          {todayAtt.status}
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-slate-400">Entry confirmed in database. Today's attendance limit has been reached.</p>
+                    </div>
+                  )}
+
+                  {/* Card-local Success Animation Toast */}
+                  {attendanceSuccessMsg && (
+                    <div className="mb-4 p-3 bg-gradient-to-r from-emerald-950/80 to-slate-900 border border-emerald-500/50 rounded-xl flex items-center gap-2.5 text-emerald-300 text-xs font-bold animate-bounce shadow-lg shadow-emerald-950/50">
+                      <CheckCircle size={18} className="text-emerald-400 shrink-0" />
+                      <span>{attendanceSuccessMsg}</span>
+                    </div>
+                  )}
+
+                  <form onSubmit={handleMarkAttendance} className="space-y-4">
+                    <div className="grid grid-cols-3 gap-2">
+                      {['present', 'leave', 'absent'].map((s) => (
+                        <button
+                          key={s}
+                          type="button"
+                          disabled={isLoggingAttendance || isAlreadyLogged}
+                          onClick={() => setAttendanceStatus(s)}
+                          className={`py-2 px-3 rounded font-bold text-xs uppercase border transition ${
+                            (todayAtt ? todayAtt.status === s : attendanceStatus === s)
+                              ? 'bg-blue-600/20 border-blue-500 text-blue-400 shadow-md shadow-blue-500/10'
+                              : 'bg-slate-900/60 border-slate-800 text-slate-500 hover:border-slate-700'
+                          } ${isAlreadyLogged ? 'cursor-not-allowed opacity-60' : ''}`}
+                        >
+                          {s}
+                        </button>
+                      ))}
+                    </div>
+
+                    {isAlreadyLogged ? (
+                      <button
+                        type="button"
+                        disabled
+                        className="w-full py-2.5 rounded bg-slate-900 border border-slate-800 text-slate-400 text-xs font-bold flex items-center justify-center gap-2 cursor-not-allowed opacity-75"
+                      >
+                        <Lock size={14} className="text-emerald-400" />
+                        <span>Today's Entry Recorded (1 Entry/Day Limit)</span>
+                      </button>
+                    ) : (
+                      <button
+                        type="submit"
+                        disabled={isLoggingAttendance}
+                        className="w-full py-2.5 rounded bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white font-bold text-xs shadow-md transition flex items-center justify-center gap-2 disabled:opacity-50"
+                      >
+                        {isLoggingAttendance ? (
+                          <>
+                            <Loader2 size={16} className="animate-spin text-white" />
+                            <span>Logging Attendance...</span>
+                          </>
+                        ) : (
+                          <>
+                            <CheckCircle size={14} />
+                            <span>Log Today's Entry</span>
+                          </>
+                        )}
+                      </button>
+                    )}
+                  </form>
+                </>
               );
             })()}
-
-            {/* Card-local Success Animation Toast */}
-            {attendanceSuccessMsg && (
-              <div className="mb-4 p-3 bg-gradient-to-r from-emerald-950/80 to-slate-900 border border-emerald-500/50 rounded-xl flex items-center gap-2.5 text-emerald-300 text-xs font-bold animate-bounce shadow-lg shadow-emerald-950/50">
-                <CheckCircle size={18} className="text-emerald-400 shrink-0" />
-                <span>{attendanceSuccessMsg}</span>
-              </div>
-            )}
-
-            <form onSubmit={handleMarkAttendance} className="space-y-4">
-              <div className="grid grid-cols-3 gap-2">
-                {['present', 'leave', 'absent'].map((s) => (
-                  <button
-                    key={s}
-                    type="button"
-                    disabled={isLoggingAttendance}
-                    onClick={() => setAttendanceStatus(s)}
-                    className={`py-2 px-3 rounded font-bold text-xs uppercase border transition ${
-                      attendanceStatus === s
-                        ? 'bg-blue-600/20 border-blue-500 text-blue-400 shadow-md shadow-blue-500/10'
-                        : 'bg-slate-900/60 border-slate-800 text-slate-500 hover:border-slate-700'
-                    }`}
-                  >
-                    {s}
-                  </button>
-                ))}
-              </div>
-              <button
-                type="submit"
-                disabled={isLoggingAttendance}
-                className="w-full py-2.5 rounded bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white font-bold text-xs shadow-md transition flex items-center justify-center gap-2 disabled:opacity-50"
-              >
-                {isLoggingAttendance ? (
-                  <>
-                    <Loader2 size={16} className="animate-spin text-white" />
-                    <span>Logging Attendance...</span>
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle size={14} />
-                    <span>Log Today's Entry</span>
-                  </>
-                )}
-              </button>
-            </form>
           </div>
 
           {/* AI Task Recommendations */}
