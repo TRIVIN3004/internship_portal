@@ -55,6 +55,23 @@ function getTaskDisplayStatus(task) {
 export default function MentorDashboard() {
   const { authenticatedFetch, logout, name } = useAuth();
 
+  const handleCardTilt = (e) => {
+    const card = e.currentTarget;
+    const rect = card.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const xc = rect.width / 2;
+    const yc = rect.height / 2;
+    const angleX = (yc - y) / 10;
+    const angleY = (x - xc) / 10;
+    card.style.transform = `perspective(1000px) rotateX(${angleX}deg) rotateY(${angleY}deg) scale3d(1.03, 1.03, 1.03)`;
+  };
+
+  const handleCardReset = (e) => {
+    const card = e.currentTarget;
+    card.style.transform = `perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)`;
+  };
+
   const [students, setStudents]   = useState([]);
   const [tasks, setTasks]         = useState([]);
   const [reports, setReports]     = useState([]);
@@ -317,7 +334,7 @@ export default function MentorDashboard() {
         )}
 
         {/* Welcome Mentor Banner */}
-        <div className="glass-panel p-6 rounded-2xl relative overflow-hidden flex flex-col md:flex-row items-center justify-between bg-gradient-to-r from-indigo-50/50 to-purple-50/50 border border-slate-200 shadow-md">
+        <div onMouseMove={handleCardTilt} onMouseLeave={handleCardReset} style={{ transition: 'transform 0.15s ease-out' }} className="glass-panel p-6 rounded-2xl relative overflow-hidden flex flex-col md:flex-row items-center justify-between bg-gradient-to-r from-indigo-50/50 to-purple-50/50 border border-slate-200 shadow-md">
           <div className="space-y-2 text-left">
             <h1 className="text-2xl font-bold font-heading bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
               Welcome Back, Mentor {name || 'Academic Advisor'}!
@@ -332,7 +349,7 @@ export default function MentorDashboard() {
         </div>
 
         {/* Attention Summary Bar */}
-        <section className={`glass-panel p-5 rounded-2xl border-l-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 ${
+        <section onMouseMove={handleCardTilt} onMouseLeave={handleCardReset} style={{ transition: 'transform 0.15s ease-out' }} className={`glass-panel p-5 rounded-2xl border-l-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 ${
           atRiskStudents.length > 0 ? 'border-l-amber-500 bg-amber-500/5' : 'border-l-emerald-500 bg-emerald-500/5'
         }`}>
           <div className="flex items-center gap-3">
@@ -390,7 +407,7 @@ export default function MentorDashboard() {
               const statusBadge = s.predicted_grade || 'On Track';
 
               return (
-                <div key={s.id} className={`glass-panel p-6 rounded-2xl border-l-4 flex flex-col justify-between transition duration-300 hover:border-slate-700 ${
+                <div key={s.id} onMouseMove={handleCardTilt} onMouseLeave={handleCardReset} style={{ transition: 'transform 0.15s ease-out' }} className={`glass-panel p-6 rounded-2xl border-l-4 flex flex-col justify-between transition duration-300 hover:border-slate-700 ${
                   statusBadge === 'Outstanding' ? 'border-l-emerald-500' :
                   statusBadge === 'At Risk'    ? 'border-l-red-500' : 'border-l-cyan-500'}`}>
 

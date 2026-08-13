@@ -30,6 +30,23 @@ function formatDateTime(dateStr) {
 
 export default function StudentDashboard() {
   const { authenticatedFetch, logout, name } = useAuth();
+
+  const handleCardTilt = (e) => {
+    const card = e.currentTarget;
+    const rect = card.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const xc = rect.width / 2;
+    const yc = rect.height / 2;
+    const angleX = (yc - y) / 10;
+    const angleY = (x - xc) / 10;
+    card.style.transform = `perspective(1000px) rotateX(${angleX}deg) rotateY(${angleY}deg) scale3d(1.03, 1.03, 1.03)`;
+  };
+
+  const handleCardReset = (e) => {
+    const card = e.currentTarget;
+    card.style.transform = `perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)`;
+  };
   
   // Dashboard states
   const [profile, setProfile] = useState(null);
@@ -443,7 +460,7 @@ export default function StudentDashboard() {
         )}
 
         {/* Welcome Student Banner */}
-        <div className="glass-panel p-6 rounded-2xl relative overflow-hidden flex flex-col md:flex-row items-center justify-between bg-gradient-to-r from-blue-50/50 to-cyan-50/50 border border-slate-200 shadow-md">
+        <div onMouseMove={handleCardTilt} onMouseLeave={handleCardReset} style={{ transition: 'transform 0.15s ease-out' }} className="glass-panel p-6 rounded-2xl relative overflow-hidden flex flex-col md:flex-row items-center justify-between bg-gradient-to-r from-blue-50/50 to-cyan-50/50 border border-slate-200 shadow-md">
           <div className="space-y-2 text-left">
             <h1 className="text-2xl font-bold font-heading bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
               Welcome Back, {profile?.name || 'Intern'}!
@@ -463,7 +480,7 @@ export default function StudentDashboard() {
         <div className="space-y-8">
           
           {/* Profile Card */}
-          <div className="glass-panel p-6 rounded-2xl relative overflow-hidden">
+          <div onMouseMove={handleCardTilt} onMouseLeave={handleCardReset} style={{ transition: 'transform 0.15s ease-out' }} className="glass-panel p-6 rounded-2xl relative overflow-hidden">
             <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/10 rounded-full blur-xl pointer-events-none" />
             <div className="flex items-center gap-4">
               <div className="w-14 h-14 bg-gradient-to-tr from-blue-600 to-cyan-600 rounded-xl flex items-center justify-center font-heading font-black text-xl text-white">
@@ -650,7 +667,7 @@ export default function StudentDashboard() {
 
           {/* KPI Widget Cards */}
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-            <div className="glass-panel p-4 rounded-xl border-l-2 border-l-yellow-500 bg-yellow-500/[0.02]">
+            <div onMouseMove={handleCardTilt} onMouseLeave={handleCardReset} style={{ transition: 'transform 0.15s ease-out' }} className="glass-panel p-4 rounded-xl border-l-2 border-l-yellow-500 bg-yellow-500/[0.02]">
               <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Internship Score</span>
               <div className="flex flex-col mt-1">
                 <span className="text-2xl font-extrabold font-heading text-white">{stats.internshipScore}%</span>
@@ -658,28 +675,28 @@ export default function StudentDashboard() {
               </div>
             </div>
 
-            <div className="glass-panel p-4 rounded-xl">
+            <div onMouseMove={handleCardTilt} onMouseLeave={handleCardReset} style={{ transition: 'transform 0.15s ease-out' }} className="glass-panel p-4 rounded-xl">
               <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Attendance Rate</span>
               <div className="flex items-baseline gap-1 mt-2">
                 <span className="text-2xl font-extrabold font-heading text-white">{stats.attendanceRate}%</span>
               </div>
             </div>
 
-            <div className="glass-panel p-4 rounded-xl">
+            <div onMouseMove={handleCardTilt} onMouseLeave={handleCardReset} style={{ transition: 'transform 0.15s ease-out' }} className="glass-panel p-4 rounded-xl">
               <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Task Completion</span>
               <div className="flex items-baseline gap-1 mt-2">
                 <span className="text-2xl font-extrabold font-heading text-white">{stats.taskCompletionRate}%</span>
               </div>
             </div>
 
-            <div className="glass-panel p-4 rounded-xl">
+            <div onMouseMove={handleCardTilt} onMouseLeave={handleCardReset} style={{ transition: 'transform 0.15s ease-out' }} className="glass-panel p-4 rounded-xl">
               <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">NLP Report Avg</span>
               <div className="flex items-baseline gap-1 mt-2">
                 <span className="text-2xl font-extrabold font-heading text-white">{stats.avgReportQuality}%</span>
               </div>
             </div>
 
-            <div className="glass-panel p-4 rounded-xl border-l-2 border-l-emerald-500">
+            <div onMouseMove={handleCardTilt} onMouseLeave={handleCardReset} style={{ transition: 'transform 0.15s ease-out' }} className="glass-panel p-4 rounded-xl border-l-2 border-l-emerald-500">
               <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">AI Predicted Grade</span>
               <div className="flex flex-col mt-1">
                 <span className={`text-base font-extrabold font-heading uppercase ${

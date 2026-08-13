@@ -9,6 +9,23 @@ import {
 
 export default function AdminDashboard() {
   const { authenticatedFetch, logout } = useAuth();
+
+  const handleCardTilt = (e) => {
+    const card = e.currentTarget;
+    const rect = card.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const xc = rect.width / 2;
+    const yc = rect.height / 2;
+    const angleX = (yc - y) / 10;
+    const angleY = (x - xc) / 10;
+    card.style.transform = `perspective(1000px) rotateX(${angleX}deg) rotateY(${angleY}deg) scale3d(1.03, 1.03, 1.03)`;
+  };
+
+  const handleCardReset = (e) => {
+    const card = e.currentTarget;
+    card.style.transform = `perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)`;
+  };
   
   // Dashboard states
   const [students, setStudents] = useState([]);
@@ -327,7 +344,7 @@ export default function AdminDashboard() {
         )}
 
         {/* Welcome Admin Banner */}
-        <div className="glass-panel p-6 rounded-2xl relative overflow-hidden flex flex-col md:flex-row items-center justify-between bg-gradient-to-r from-emerald-50/50 to-teal-50/50 border border-slate-200 shadow-md">
+        <div onMouseMove={handleCardTilt} onMouseLeave={handleCardReset} style={{ transition: 'transform 0.15s ease-out' }} className="glass-panel p-6 rounded-2xl relative overflow-hidden flex flex-col md:flex-row items-center justify-between bg-gradient-to-r from-emerald-50/50 to-teal-50/50 border border-slate-200 shadow-md">
           <div className="space-y-2 text-left">
             <h1 className="text-2xl font-bold font-heading bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
               System Control Center
@@ -343,25 +360,25 @@ export default function AdminDashboard() {
 
         {/* Global Analytics Overview Cards */}
         <section className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <div className="glass-panel p-5 rounded-2xl">
+          <div onMouseMove={handleCardTilt} onMouseLeave={handleCardReset} style={{ transition: 'transform 0.15s ease-out' }} className="glass-panel p-5 rounded-2xl">
             <span className="text-xs font-semibold text-slate-500 uppercase tracking-widest">Total Students</span>
             <h4 className="text-3xl font-black text-white font-heading mt-2">{overview.total_students}</h4>
             <p className="text-[10px] text-slate-400 mt-1">Enrolled and active in batch</p>
           </div>
 
-          <div className="glass-panel p-5 rounded-2xl">
+          <div onMouseMove={handleCardTilt} onMouseLeave={handleCardReset} style={{ transition: 'transform 0.15s ease-out' }} className="glass-panel p-5 rounded-2xl">
             <span className="text-xs font-semibold text-slate-500 uppercase tracking-widest">Total Mentors</span>
             <h4 className="text-3xl font-black text-white font-heading mt-2">{overview.total_mentors}</h4>
             <p className="text-[10px] text-slate-400 mt-1">Guiding active programs</p>
           </div>
 
-          <div className="glass-panel p-5 rounded-2xl">
+          <div onMouseMove={handleCardTilt} onMouseLeave={handleCardReset} style={{ transition: 'transform 0.15s ease-out' }} className="glass-panel p-5 rounded-2xl">
             <span className="text-xs font-semibold text-slate-500 uppercase tracking-widest">Attendance Avg</span>
             <h4 className="text-3xl font-black text-white font-heading mt-2">{Math.round(overview.overall_attendance_rate * 100)}%</h4>
             <p className="text-[10px] text-slate-400 mt-1">Global present ticks</p>
           </div>
 
-          <div className="glass-panel p-5 rounded-2xl border-l-2 border-l-red-500">
+          <div onMouseMove={handleCardTilt} onMouseLeave={handleCardReset} style={{ transition: 'transform 0.15s ease-out' }} className="glass-panel p-5 rounded-2xl border-l-2 border-l-red-500">
             <span className="text-xs font-semibold text-slate-500 uppercase tracking-widest">AI predicted Risk Status</span>
             <div className="flex gap-4 mt-2">
               <div>
