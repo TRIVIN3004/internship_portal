@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import adminCartoon from '../assets/admin_cartoon.jpg';
 import { 
   Shield, Users, GraduationCap, Calendar, Award, 
   UserPlus, CheckCircle, AlertTriangle, Activity, Loader,
@@ -324,6 +325,21 @@ export default function AdminDashboard() {
             <AlertTriangle size={18} /> <span>{mappingError}</span>
           </div>
         )}
+
+        {/* Welcome Admin Banner */}
+        <div className="glass-panel p-6 rounded-2xl relative overflow-hidden flex flex-col md:flex-row items-center justify-between bg-gradient-to-r from-emerald-50/50 to-teal-50/50 border border-slate-200 shadow-md">
+          <div className="space-y-2 text-left">
+            <h1 className="text-2xl font-bold font-heading bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
+              System Control Center
+            </h1>
+            <p className="text-slate-600 text-sm max-w-xl leading-relaxed">
+              Manage mentor-student assignments, review platform feedback, issue secure cryptographically validated certificates, and monitor overall engagement metrics.
+            </p>
+          </div>
+          <div className="relative mt-4 md:mt-0 w-32 h-32 md:w-40 md:h-40 flex items-center justify-center animate-float">
+            <img src={adminCartoon} alt="Admin Illustration" className="w-full h-full object-contain rounded-xl drop-shadow-lg hover:scale-105 transition-transform duration-300" />
+          </div>
+        </div>
 
         {/* Global Analytics Overview Cards */}
         <section className="grid grid-cols-1 md:grid-cols-4 gap-6">

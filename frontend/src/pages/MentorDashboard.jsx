@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import mentorCartoon from '../assets/mentor_cartoon.jpg';
 import ChatBox from '../components/ChatBox';
 import FeedbackModal from '../components/FeedbackModal';
 import {
@@ -314,6 +315,21 @@ export default function MentorDashboard() {
             </div>
           </section>
         )}
+
+        {/* Welcome Mentor Banner */}
+        <div className="glass-panel p-6 rounded-2xl relative overflow-hidden flex flex-col md:flex-row items-center justify-between bg-gradient-to-r from-indigo-50/50 to-purple-50/50 border border-slate-200 shadow-md">
+          <div className="space-y-2 text-left">
+            <h1 className="text-2xl font-bold font-heading bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+              Welcome Back, Mentor {name || 'Academic Advisor'}!
+            </h1>
+            <p className="text-slate-600 text-sm max-w-xl leading-relaxed">
+              Track student progress, evaluate task submissions, and provide direct feedback on daily logs using our similarity and risk models.
+            </p>
+          </div>
+          <div className="relative mt-4 md:mt-0 w-32 h-32 md:w-40 md:h-40 flex items-center justify-center animate-float-delayed">
+            <img src={mentorCartoon} alt="Mentor Illustration" className="w-full h-full object-contain rounded-xl drop-shadow-lg hover:scale-105 transition-transform duration-300" />
+          </div>
+        </div>
 
         {/* Attention Summary Bar */}
         <section className={`glass-panel p-5 rounded-2xl border-l-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 ${

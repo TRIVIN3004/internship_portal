@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import studentCartoon from '../assets/student_cartoon.jpg';
 import ChatBox from '../components/ChatBox';
 import FeedbackModal from '../components/FeedbackModal';
 import { 
@@ -440,6 +441,21 @@ export default function StudentDashboard() {
             </div>
           </section>
         )}
+
+        {/* Welcome Student Banner */}
+        <div className="glass-panel p-6 rounded-2xl relative overflow-hidden flex flex-col md:flex-row items-center justify-between bg-gradient-to-r from-blue-50/50 to-cyan-50/50 border border-slate-200 shadow-md">
+          <div className="space-y-2 text-left">
+            <h1 className="text-2xl font-bold font-heading bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
+              Welcome Back, {profile?.name || 'Intern'}!
+            </h1>
+            <p className="text-slate-600 text-sm max-w-xl leading-relaxed">
+              Your AI-powered internship portal is live. Check your assignments, report your daily logs, and track your performance index.
+            </p>
+          </div>
+          <div className="relative mt-4 md:mt-0 w-32 h-32 md:w-40 md:h-40 flex items-center justify-center animate-float">
+            <img src={studentCartoon} alt="Student Illustration" className="w-full h-full object-contain rounded-xl drop-shadow-lg hover:scale-105 transition-transform duration-300" />
+          </div>
+        </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
