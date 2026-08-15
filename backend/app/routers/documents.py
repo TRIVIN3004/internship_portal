@@ -4,6 +4,7 @@ import datetime
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form, Query
 from fastapi.responses import FileResponse
+from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 from ..database import get_db
 from .. import models, schemas, auth
@@ -20,9 +21,11 @@ def ensure_upload_dir():
         print(f"Upload directory creation warning: {e}")
 
 
+oauth2_scheme_optional = OAuth2PasswordBearer(tokenUrl="api/auth/login", auto_error=False)
+
 def get_user_from_token_or_header(
     token: Optional[str] = Query(None),
-    header_token: Optional[str] = Depends(auth.oauth2_scheme),
+    header_token: Optional[str] = Depends(oauth2_scheme_optional),
     db: Session = Depends(get_db)
 ) -> models.User:
     actual_token = token or header_token
@@ -36,7 +39,7 @@ def get_user_from_token_or_header(
         email: str = payload.get("sub")
         if not email:
             raise HTTPException(status_code=401, detail="Invalid token payload")
-    except auth.JWTError:
+    except auth.jwt.PyJWTError:
         raise HTTPException(status_code=401, detail="Invalid token")
         
     user = db.query(models.User).filter(models.User.email == email).first()
