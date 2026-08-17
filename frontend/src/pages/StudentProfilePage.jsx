@@ -7,7 +7,7 @@ import {
   ArrowLeft, Users, CheckCircle, XCircle, ShieldAlert, TrendingUp,
   Clock, RefreshCw, PlusSquare, FileText, Award, Paperclip, Download,
   Eye, Layers, Lock, Trash2, MessageSquare, AlertTriangle, Calendar,
-  Star, BookOpen, Filter, Check, AlertCircle, FileCheck
+  Star, BookOpen, Filter, Check, AlertCircle, FileCheck, Loader2
 } from 'lucide-react';
 
 const BATCH_CONFIG = {
@@ -75,6 +75,7 @@ export default function StudentProfilePage() {
   const [taskTitle, setTaskTitle]                 = useState('');
   const [taskDesc, setTaskDesc]                   = useState('');
   const [taskDueDate, setTaskDueDate]             = useState('');
+  const [isDispatchingTask, setIsDispatchingTask] = useState(false);
 
   // Evaluation state
   const [activeGradeTaskId, setActiveGradeTaskId] = useState(null);
@@ -135,6 +136,7 @@ export default function StudentProfilePage() {
 
   const handleAssignTask = async (e) => {
     e.preventDefault(); setMessage(''); setErrMessage('');
+    setIsDispatchingTask(true);
     try {
       const res = await authenticatedFetch('/api/mentors/tasks', {
         method: 'POST',
@@ -157,6 +159,8 @@ export default function StudentProfilePage() {
       }
     } catch {
       setErrMessage('Error assigning task.');
+    } finally {
+      setIsDispatchingTask(false);
     }
   };
 
@@ -1101,11 +1105,22 @@ export default function StudentProfilePage() {
               </div>
 
               <div className="flex justify-end gap-3 pt-2">
-                <button type="button" onClick={() => setIsAssignModalOpen(false)} className="px-4 py-2 text-xs font-bold text-slate-400 hover:text-slate-200">
+                <button type="button" disabled={isDispatchingTask} onClick={() => setIsAssignModalOpen(false)} className="px-4 py-2 text-xs font-bold text-slate-400 hover:text-slate-200 disabled:opacity-50">
                   Cancel
                 </button>
-                <button type="submit" className="px-5 py-2 rounded-lg bg-gradient-to-r from-blue-600 to-cyan-600 text-white font-bold text-xs hover:shadow-lg transition">
-                  Dispatch Task Assignment
+                <button
+                  type="submit"
+                  disabled={isDispatchingTask}
+                  className="px-5 py-2 rounded-lg bg-gradient-to-r from-blue-600 to-cyan-600 text-white font-bold text-xs hover:shadow-lg transition flex items-center gap-2 disabled:opacity-50"
+                >
+                  {isDispatchingTask ? (
+                    <>
+                      <Loader2 size={14} className="animate-spin text-white" />
+                      <span>Dispatching...</span>
+                    </>
+                  ) : (
+                    <span>Dispatch Task Assignment</span>
+                  )}
                 </button>
               </div>
             </form>

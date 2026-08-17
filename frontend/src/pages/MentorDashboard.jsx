@@ -91,6 +91,7 @@ export default function MentorDashboard() {
   const [taskDesc, setTaskDesc]           = useState('');
   const [taskStudentId, setTaskStudentId] = useState('');
   const [taskDueDate, setTaskDueDate]     = useState('');
+  const [isDispatchingTask, setIsDispatchingTask] = useState(false);
 
   const [activeGradeTaskId, setActiveGradeTaskId] = useState(null);
   const [gradeScore, setGradeScore]               = useState(80);
@@ -178,6 +179,7 @@ export default function MentorDashboard() {
   const handleAssignTask = async (e) => {
     e.preventDefault(); setMessage(''); setErrMessage('');
     if (!taskStudentId) { setErrMessage('Please select a student intern first.'); return; }
+    setIsDispatchingTask(true);
     try {
       const res = await authenticatedFetch('/api/mentors/tasks', {
         method: 'POST',
@@ -190,6 +192,7 @@ export default function MentorDashboard() {
         fetchData();
       } else { const e = await res.json(); setErrMessage(e.detail || 'Failed to assign task.'); }
     } catch { setErrMessage('Error assigning task.'); }
+    finally { setIsDispatchingTask(false); }
   };
 
   const handleReviewReport = async (reportId, status) => {
@@ -685,8 +688,19 @@ export default function MentorDashboard() {
                 <input type="datetime-local" required min={new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)} className="w-full px-4 py-2.5 bg-slate-900 border border-slate-800 focus:border-blue-500 rounded-lg text-sm text-slate-200 outline-none"
                   value={taskDueDate} onChange={(e) => setTaskDueDate(e.target.value)} />
               </div>
-              <button type="submit" className="w-full py-2.5 rounded bg-gradient-to-r from-blue-600 to-cyan-600 text-white font-bold text-xs hover:shadow-lg transition">
-                Dispatch Task Assignment
+              <button
+                type="submit"
+                disabled={isDispatchingTask}
+                className="w-full py-2.5 rounded bg-gradient-to-r from-blue-600 to-cyan-600 text-white font-bold text-xs hover:shadow-lg transition flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                {isDispatchingTask ? (
+                  <>
+                    <Loader2 size={16} className="animate-spin text-white" />
+                    <span>Dispatching Task...</span>
+                  </>
+                ) : (
+                  <span>Dispatch Task Assignment</span>
+                )}
               </button>
             </form>
           </div>
