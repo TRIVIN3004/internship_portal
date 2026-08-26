@@ -34,6 +34,12 @@ def get_user_from_token_or_header(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Authentication token missing"
         )
+    # Strip Bearer prefix if present (e.g. from query param or custom header format)
+    if actual_token.startswith("Bearer "):
+        actual_token = actual_token[7:]
+    elif actual_token.startswith("bearer "):
+        actual_token = actual_token[7:]
+        
     try:
         payload = auth.jwt.decode(actual_token, auth.SECRET_KEY, algorithms=[auth.ALGORITHM])
         email: str = payload.get("sub")
@@ -164,17 +170,24 @@ def download_document(
         if not user.student_profile or doc.student_id != user.student_profile.id:
             raise HTTPException(status_code=403, detail="Access denied")
     elif user.role == "mentor":
-        if not user.mentor_profile:
+        mentor_profile = db.query(models.MentorProfile).filter(models.MentorProfile.user_id == user.id).first()
+        if not mentor_profile:
             raise HTTPException(status_code=403, detail="Access denied")
-        assigned_student_ids = [s.id for s in user.mentor_profile.students]
+        assigned_students = db.query(models.StudentProfile).filter(models.StudentProfile.mentor_id == mentor_profile.id).all()
+        assigned_student_ids = [s.id for s in assigned_students]
         if doc.student_id not in assigned_student_ids:
             raise HTTPException(status_code=403, detail="Access denied: Student not assigned to you")
             
-    if not os.path.exists(doc.file_path):
-        raise HTTPException(status_code=404, detail="File on disk not found")
+    file_path = doc.file_path
+    if not os.path.exists(file_path):
+        fallback_path = os.path.join(UPLOAD_DIR, os.path.basename(doc.file_path))
+        if os.path.exists(fallback_path):
+            file_path = fallback_path
+        else:
+            raise HTTPException(status_code=404, detail="File on disk not found")
         
     return FileResponse(
-        path=doc.file_path,
+        path=file_path,
         filename=doc.file_name,
         media_type=doc.file_type or "application/octet-stream",
         headers={"Content-Disposition": f'attachment; filename="{doc.file_name}"'}
@@ -196,17 +209,24 @@ def view_document(
         if not user.student_profile or doc.student_id != user.student_profile.id:
             raise HTTPException(status_code=403, detail="Access denied")
     elif user.role == "mentor":
-        if not user.mentor_profile:
+        mentor_profile = db.query(models.MentorProfile).filter(models.MentorProfile.user_id == user.id).first()
+        if not mentor_profile:
             raise HTTPException(status_code=403, detail="Access denied")
-        assigned_student_ids = [s.id for s in user.mentor_profile.students]
+        assigned_students = db.query(models.StudentProfile).filter(models.StudentProfile.mentor_id == mentor_profile.id).all()
+        assigned_student_ids = [s.id for s in assigned_students]
         if doc.student_id not in assigned_student_ids:
             raise HTTPException(status_code=403, detail="Access denied: Student not assigned to you")
             
-    if not os.path.exists(doc.file_path):
-        raise HTTPException(status_code=404, detail="File on disk not found")
+    file_path = doc.file_path
+    if not os.path.exists(file_path):
+        fallback_path = os.path.join(UPLOAD_DIR, os.path.basename(doc.file_path))
+        if os.path.exists(fallback_path):
+            file_path = fallback_path
+        else:
+            raise HTTPException(status_code=404, detail="File on disk not found")
         
     return FileResponse(
-        path=doc.file_path,
+        path=file_path,
         filename=doc.file_name,
         media_type=doc.file_type or "application/octet-stream",
         headers={"Content-Disposition": f'inline; filename="{doc.file_name}"'}

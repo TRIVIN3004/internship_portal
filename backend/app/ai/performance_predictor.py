@@ -75,13 +75,19 @@ def train_and_save_model():
     except Exception as e:
         print(f"Model training notice: {e}")
 
+_CACHED_MODEL = None
+
 def load_model() -> Any:
-    """Loads the pickled model, returns None if not found or errors out."""
+    """Loads the pickled model and caches it in memory, returns None if not found or errors out."""
+    global _CACHED_MODEL
+    if _CACHED_MODEL is not None:
+        return _CACHED_MODEL
     if not os.path.exists(MODEL_PATH):
         return None
     try:
         with open(MODEL_PATH, "rb") as f:
-            return pickle.load(f)
+            _CACHED_MODEL = pickle.load(f)
+            return _CACHED_MODEL
     except Exception:
         return None
 

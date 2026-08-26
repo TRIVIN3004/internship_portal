@@ -95,60 +95,24 @@ export default function StudentDashboard() {
     eligibleForCompletion: true
   });
 
-  const fetchData = async () => {
+  const fetchData = async (silent = false) => {
     try {
-      setLoading(true);
-      // Profile
-      const profRes = await authenticatedFetch('/api/students/me');
-      if (profRes.ok) {
-        const profData = await profRes.json();
-        setProfile(profData);
-      }
-      
-      // Tasks
-      const tasksRes = await authenticatedFetch('/api/students/me/tasks');
-      if (tasksRes.ok) {
-        const tasksData = await tasksRes.json();
-        setTasks(tasksData);
-      }
-
-      // Reports
-      const reportsRes = await authenticatedFetch('/api/students/me/reports');
-      if (reportsRes.ok) {
-        const reportsData = await reportsRes.json();
-        setReports(reportsData);
-      }
-
-      // Attendance
-      const attRes = await authenticatedFetch('/api/students/me/attendance');
-      if (attRes.ok) {
-        const attData = await attRes.json();
-        setAttendance(attData);
-      }
-
-      // Recommendations
-      const recsRes = await authenticatedFetch('/api/students/me/recommendations');
-      if (recsRes.ok) {
-        const recsData = await recsRes.json();
-        setRecommendations(recsData);
-      }
-
-      // Documents
-      const docsRes = await authenticatedFetch('/api/documents/student');
-      if (docsRes.ok) {
-        const docsData = await docsRes.json();
-        setDocuments(docsData);
-      }
-
-      // Announcements
-      const annRes = await authenticatedFetch('/api/announcements');
-      if (annRes.ok) {
-        setAnnouncements(await annRes.json());
+      if (!silent) setLoading(true);
+      const res = await authenticatedFetch('/api/students/me/dashboard');
+      if (res.ok) {
+        const data = await res.json();
+        setProfile(data.profile);
+        setTasks(data.tasks || []);
+        setReports(data.reports || []);
+        setAttendance(data.attendance || []);
+        setRecommendations(data.recommendations || []);
+        setDocuments(data.documents || []);
+        setAnnouncements(data.announcements || []);
       }
     } catch (err) {
       setErrMessage('Error loading dashboard data.');
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
@@ -250,10 +214,6 @@ export default function StudentDashboard() {
 
   useEffect(() => {
     fetchData();
-    const interval = setInterval(() => {
-      fetchData();
-    }, 30000);
-    return () => clearInterval(interval);
   }, []);
 
   // Update dynamic stats on variable updates

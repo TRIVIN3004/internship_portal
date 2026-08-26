@@ -306,6 +306,13 @@ class MentorAttendanceOut(BaseModel):
     class Config:
         from_attributes = True
 
-
-
-
+# --- Consolidated Dashboard Schema ---
+class StudentDashboardOut(BaseModel):
+    profile: StudentProfileOut
+    tasks: List[TaskOut]
+    reports: List[DailyReportOut]
+    attendance: List[AttendanceOut]
+    recommendations: List[dict]
+    documents: List[DocumentOut]
+    announcements: List[AnnouncementOut]
+    unread_chat_count: int = 0

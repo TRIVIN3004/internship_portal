@@ -93,22 +93,27 @@ export default function ChatBox() {
     }
   };
 
-  // Initial load and background polling
+  // Fetch contacts on mount once
   useEffect(() => {
     fetchContacts();
-    const interval = setInterval(() => {
-      fetchContacts();
-    }, 10000);
-    return () => clearInterval(interval);
   }, []);
 
-  // Poll messages when chatbox is open and contact selected
+  // Fetch contacts and messages whenever chat drawer is opened
+  useEffect(() => {
+    if (isOpen) {
+      fetchContacts();
+    }
+  }, [isOpen]);
+
+  // Poll messages only when chatbox is actively open and contact selected
   useEffect(() => {
     if (isOpen && selectedContact) {
       fetchMessages(selectedContact.user_id);
       const msgInterval = setInterval(() => {
-        fetchMessages(selectedContact.user_id, true);
-      }, 3000);
+        if (document.visibilityState === 'visible') {
+          fetchMessages(selectedContact.user_id, true);
+        }
+      }, 10000);
       return () => clearInterval(msgInterval);
     }
   }, [isOpen, selectedContact?.user_id]);

@@ -1,3 +1,4 @@
+import re
 from typing import List, Dict, Any
 
 # Curated bank of training tasks for recommendations if no custom task is provided
@@ -46,12 +47,20 @@ DEFAULT_TASK_BANK = [
 
 def recommend_tasks(student_skills: str, completed_task_titles: List[str] = None) -> List[Dict[str, Any]]:
     """
-    Computes Cosine Similarity between student skills and task tags,
-    recommending the top 3 best-fitting tasks not yet completed.
+    Computes Skill Overlap Similarity between student skills and task tags,
+    recommending the top 3 best-fitting tasks not yet completed in <1ms without heavy ML library overhead.
     """
     if not student_skills:
         # Default fallback recommendations if student profile has no skills listed
-        return [t for t in DEFAULT_TASK_BANK if t["title"] not in (completed_task_titles or [])][:3]
+        return [
+            {
+                "title": t["title"],
+                "description": t["description"],
+                "skills": t["skills"],
+                "match_score": 85
+            }
+            for t in DEFAULT_TASK_BANK if t["title"] not in (completed_task_titles or [])
+        ][:3]
         
     completed_titles_set = set(t.lower() for t in (completed_task_titles or []))
     
@@ -60,56 +69,35 @@ def recommend_tasks(student_skills: str, completed_task_titles: List[str] = None
     if not candidate_tasks:
         return []
         
-    # Text Corpus to Vectorize:
-    # First item is the student's skills, followed by the skills string of each candidate task.
-    corpus = [student_skills.lower()] + [task["skills"].lower() for task in candidate_tasks]
+    student_tokens = set(re.findall(r'\w+', student_skills.lower()))
     
-    try:
-        from sklearn.feature_extraction.text import TfidfVectorizer
-        from sklearn.metrics.pairwise import cosine_similarity
-        vectorizer = TfidfVectorizer()
-        tfidf_matrix = vectorizer.fit_transform(corpus)
+    scored_tasks = []
+    for task in candidate_tasks:
+        task_tokens = set(re.findall(r'\w+', f"{task['skills']} {task['title']}".lower()))
         
-        # Calculate Cosine Similarity of student's skills (index 0) against all candidate tasks
-        similarity_scores = cosine_similarity(tfidf_matrix[0:1], tfidf_matrix[1:]).flatten()
+        # Calculate intersection overlap and Jaccard coefficient
+        intersection = student_tokens.intersection(task_tokens)
+        union = student_tokens.union(task_tokens)
         
-        # Rank candidate tasks by similarity score descending
-        ranked_indices = similarity_scores.argsort()[::-1]
-        
-        recommendations = []
-        for index in ranked_indices[:3]:
-            task = candidate_tasks[index]
-            score = float(similarity_scores[index])
+        if union:
+            jaccard = len(intersection) / len(union)
+            overlap_ratio = len(intersection) / max(1, len(task_tokens))
+            score = (jaccard * 0.4) + (overlap_ratio * 0.6)
+        else:
+            score = 0.0
             
-            # Map score to standard percentage matching
-            match_percentage = int(score * 100)
-            # Minimum match helper (ensure at least a baseline match is shown)
-            match_percentage = max(10, min(98, match_percentage + 15))
-            
-            recommendations.append({
-                "title": task["title"],
-                "description": task["description"],
-                "skills": task["skills"],
-                "match_score": match_percentage
-            })
-        return recommendations
+        match_percentage = int(score * 100)
+        # Ensure smooth baseline match presentation
+        match_percentage = max(25, min(98, match_percentage + 20))
         
-    except Exception:
-        # Simple string-match fallback in case of Tfidf exceptions
-        recommendations = []
-        student_skills_set = set(s.strip().lower() for s in student_skills.split(","))
+        scored_tasks.append({
+            "title": task["title"],
+            "description": task["description"],
+            "skills": task["skills"],
+            "match_score": match_percentage
+        })
         
-        for task in candidate_tasks:
-            task_skills_set = set(s.strip().lower() for s in task["skills"].split(","))
-            intersect = student_skills_set.intersection(task_skills_set)
-            match_percentage = int((len(intersect) / max(1, len(task_skills_set))) * 100)
-            
-            recommendations.append({
-                "title": task["title"],
-                "description": task["description"],
-                "skills": task["skills"],
-                "match_score": max(20, min(95, match_percentage + 10))
-            })
-            
-        recommendations = sorted(recommendations, key=lambda x: x["match_score"], reverse=True)
-        return recommendations[:3]
+    # Sort descending by match score
+    scored_tasks.sort(key=lambda x: x["match_score"], reverse=True)
+    return scored_tasks[:3]
+

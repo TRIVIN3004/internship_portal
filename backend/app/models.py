@@ -21,7 +21,7 @@ class StudentProfile(Base):
     __tablename__ = "student_profiles"
     
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     name = Column(String, nullable=False)
     college = Column(String, nullable=True)
     department = Column(String, nullable=True)
@@ -29,7 +29,7 @@ class StudentProfile(Base):
     internship_domain = Column(String, nullable=True) # e.g. "AI & Data Science", "Web Development"
     start_date = Column(Date, nullable=True)
     end_date = Column(Date, nullable=True)
-    mentor_id = Column(Integer, ForeignKey("mentor_profiles.id", ondelete="SET NULL"), nullable=True)
+    mentor_id = Column(Integer, ForeignKey("mentor_profiles.id", ondelete="SET NULL"), nullable=True, index=True)
     
     # Relationships
     user = relationship("User", back_populates="student_profile")
@@ -45,7 +45,7 @@ class MentorProfile(Base):
     __tablename__ = "mentor_profiles"
     
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     name = Column(String, nullable=False)
     department = Column(String, nullable=True)
     specialization = Column(String, nullable=True)
@@ -70,9 +70,9 @@ class Attendance(Base):
     __tablename__ = "attendance"
     
     id = Column(Integer, primary_key=True, index=True)
-    student_id = Column(Integer, ForeignKey("student_profiles.id", ondelete="CASCADE"), nullable=False)
-    date = Column(Date, nullable=False)
-    status = Column(String, nullable=False) # "present", "absent", "leave"
+    student_id = Column(Integer, ForeignKey("student_profiles.id", ondelete="CASCADE"), nullable=False, index=True)
+    date = Column(Date, nullable=False, index=True)
+    status = Column(String, nullable=False, index=True) # "present", "absent", "leave"
     marked_at = Column(DateTime, default=datetime.datetime.utcnow)
     
     student = relationship("StudentProfile", back_populates="attendance_records")
@@ -81,9 +81,9 @@ class MentorAttendance(Base):
     __tablename__ = "mentor_attendance"
     
     id = Column(Integer, primary_key=True, index=True)
-    mentor_id = Column(Integer, ForeignKey("mentor_profiles.id", ondelete="CASCADE"), nullable=False)
-    date = Column(Date, nullable=False)
-    status = Column(String, nullable=False) # "present", "absent", "leave"
+    mentor_id = Column(Integer, ForeignKey("mentor_profiles.id", ondelete="CASCADE"), nullable=False, index=True)
+    date = Column(Date, nullable=False, index=True)
+    status = Column(String, nullable=False, index=True) # "present", "absent", "leave"
     marked_at = Column(DateTime, default=datetime.datetime.utcnow)
     
     mentor = relationship("MentorProfile", back_populates="attendance_records")
@@ -92,14 +92,14 @@ class DailyReport(Base):
     __tablename__ = "daily_reports"
     
     id = Column(Integer, primary_key=True, index=True)
-    student_id = Column(Integer, ForeignKey("student_profiles.id", ondelete="CASCADE"), nullable=False)
-    date = Column(Date, nullable=False)
+    student_id = Column(Integer, ForeignKey("student_profiles.id", ondelete="CASCADE"), nullable=False, index=True)
+    date = Column(Date, nullable=False, index=True)
     content = Column(Text, nullable=False) # details of work done
     blockers = Column(Text, nullable=True) # detail of blockers faced
     hours_spent = Column(Float, default=8.0)
-    status = Column(String, default="pending") # "pending", "approved", "rejected"
+    status = Column(String, default="pending", index=True) # "pending", "approved", "rejected"
     review_feedback = Column(Text, nullable=True)
-    reviewer_id = Column(Integer, ForeignKey("mentor_profiles.id"), nullable=True)
+    reviewer_id = Column(Integer, ForeignKey("mentor_profiles.id"), nullable=True, index=True)
     
     # AI NLP Metrics
     quality_score = Column(Float, default=0.0) # 0 to 100
@@ -114,10 +114,10 @@ class Task(Base):
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String, nullable=False)
     description = Column(Text, nullable=False)
-    assigned_to_student_id = Column(Integer, ForeignKey("student_profiles.id", ondelete="CASCADE"), nullable=False)
-    created_by_mentor_id = Column(Integer, ForeignKey("mentor_profiles.id", ondelete="SET NULL"), nullable=True)
-    status = Column(String, default="assigned") # "assigned", "submitted", "completed", "failed"
-    due_date = Column(DateTime, nullable=False)
+    assigned_to_student_id = Column(Integer, ForeignKey("student_profiles.id", ondelete="CASCADE"), nullable=False, index=True)
+    created_by_mentor_id = Column(Integer, ForeignKey("mentor_profiles.id", ondelete="SET NULL"), nullable=True, index=True)
+    status = Column(String, default="assigned", index=True) # "assigned", "submitted", "completed", "failed"
+    due_date = Column(DateTime, nullable=False, index=True)
     submitted_at = Column(DateTime, nullable=True)
     completed_at = Column(DateTime, nullable=True)
     score = Column(Float, nullable=True) # Task grading out of 100
@@ -132,7 +132,7 @@ class Certificate(Base):
     __tablename__ = "certificates"
     
     id = Column(Integer, primary_key=True, index=True)
-    student_id = Column(Integer, ForeignKey("student_profiles.id", ondelete="CASCADE"), nullable=False, unique=True)
+    student_id = Column(Integer, ForeignKey("student_profiles.id", ondelete="CASCADE"), nullable=False, unique=True, index=True)
     certificate_code = Column(String, unique=True, index=True, nullable=False) # Verification hash signature
     issued_at = Column(DateTime, default=datetime.datetime.utcnow)
     hash_signature = Column(String, nullable=False)
@@ -144,7 +144,7 @@ class PerformanceMetrics(Base):
     __tablename__ = "performance_metrics"
     
     id = Column(Integer, primary_key=True, index=True)
-    student_id = Column(Integer, ForeignKey("student_profiles.id", ondelete="CASCADE"), nullable=False, unique=True)
+    student_id = Column(Integer, ForeignKey("student_profiles.id", ondelete="CASCADE"), nullable=False, unique=True, index=True)
     calculated_score = Column(Float, default=0.0) # Weighted aggregate score
     predicted_grade = Column(String, default="On Track") # "Outstanding", "On Track", "At Risk"
     completion_probability = Column(Float, default=1.0) # 0.0 to 1.0 probability
@@ -166,7 +166,7 @@ class ChatMessage(Base):
     receiver_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     message = Column(Text, nullable=False)
     created_at = Column(DateTime, default=datetime.datetime.utcnow, index=True)
-    is_read = Column(Boolean, default=False, nullable=False)
+    is_read = Column(Boolean, default=False, nullable=False, index=True)
 
     sender = relationship("User", foreign_keys=[sender_id])
     receiver = relationship("User", foreign_keys=[receiver_id])
@@ -182,8 +182,8 @@ class Document(Base):
     file_name = Column(String, nullable=False)
     file_type = Column(String, nullable=True)
     file_size = Column(Integer, default=0)
-    uploaded_at = Column(DateTime, default=datetime.datetime.utcnow)
-    task_id = Column(Integer, ForeignKey("tasks.id", ondelete="SET NULL"), nullable=True)
+    uploaded_at = Column(DateTime, default=datetime.datetime.utcnow, index=True)
+    task_id = Column(Integer, ForeignKey("tasks.id", ondelete="SET NULL"), nullable=True, index=True)
 
     student = relationship("StudentProfile", back_populates="documents")
     task = relationship("Task", back_populates="documents")
@@ -198,9 +198,9 @@ class Feedback(Base):
     rating = Column(Integer, default=5) # 1 to 5
     subject = Column(String, nullable=False)
     message = Column(Text, nullable=False)
-    status = Column(String, default="pending") # "pending", "reviewed", "resolved"
+    status = Column(String, default="pending", index=True) # "pending", "reviewed", "resolved"
     admin_notes = Column(Text, nullable=True)
-    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow, index=True)
 
     user = relationship("User", back_populates="feedbacks")
 
@@ -211,8 +211,8 @@ class Announcement(Base):
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String, nullable=False)
     content = Column(Text, nullable=False)
-    created_at = Column(DateTime, default=datetime.datetime.utcnow)
-    created_by_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow, index=True)
+    created_by_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
 
     created_by = relationship("User")
 

@@ -9,6 +9,69 @@ from ..ai.task_recommender import recommend_tasks
 
 router = APIRouter(prefix="/students", tags=["Students"])
 
+@router.get("/me/dashboard", response_model=schemas.StudentDashboardOut)
+def get_student_dashboard(
+    student: models.StudentProfile = Depends(auth.get_current_active_student),
+    db: Session = Depends(get_db)
+):
+    """
+    Consolidated endpoint to load all student dashboard data in 1 single fast roundtrip.
+    Drastically reduces Vercel serverless CPU time and eliminates waterfall API requests.
+    """
+    tasks = student.tasks or []
+
+    reports = db.query(models.DailyReport).filter(
+        models.DailyReport.student_id == student.id
+    ).order_by(models.DailyReport.date.desc()).all()
+
+    attendance = db.query(models.Attendance).filter(
+        models.Attendance.student_id == student.id
+    ).order_by(models.Attendance.date.desc()).all()
+
+    completed_task_titles = [t.title for t in tasks if t.status == "completed"]
+    recommendations = recommend_tasks(student.skills or "", completed_task_titles)
+
+    docs = db.query(models.Document).filter(
+        models.Document.student_id == student.id
+    ).order_by(models.Document.uploaded_at.desc()).all()
+    
+    docs_out = []
+    for d in docs:
+        doc_out = schemas.DocumentOut.from_orm(d)
+        doc_out.student_name = student.name
+        if d.task:
+            doc_out.task_title = d.task.title
+        docs_out.append(doc_out)
+
+    announcements_db = db.query(models.Announcement).order_by(models.Announcement.created_at.desc()).all()
+    announcements_out = []
+    for a in announcements_db:
+        ann_out = schemas.AnnouncementOut.from_orm(a)
+        if a.created_by:
+            if a.created_by.mentor_profile:
+                ann_out.sender_name = a.created_by.mentor_profile.name
+            elif a.created_by.student_profile:
+                ann_out.sender_name = a.created_by.student_profile.name
+            else:
+                ann_out.sender_name = a.created_by.email
+        announcements_out.append(ann_out)
+
+    unread_chat_count = db.query(models.ChatMessage).filter(
+        models.ChatMessage.receiver_id == student.user_id,
+        models.ChatMessage.is_read == False
+    ).count()
+
+    return schemas.StudentDashboardOut(
+        profile=schemas.StudentProfileOut.from_orm(student),
+        tasks=[schemas.TaskOut.from_orm(t) for t in tasks],
+        reports=[schemas.DailyReportOut.from_orm(r) for r in reports],
+        attendance=[schemas.AttendanceOut.from_orm(a) for a in attendance],
+        recommendations=recommendations,
+        documents=docs_out,
+        announcements=announcements_out,
+        unread_chat_count=unread_chat_count
+    )
+
 @router.get("/me", response_model=schemas.StudentProfileOut)
 def get_student_profile(student: models.StudentProfile = Depends(auth.get_current_active_student)):
     return student

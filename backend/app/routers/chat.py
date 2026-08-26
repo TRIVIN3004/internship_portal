@@ -20,10 +20,36 @@ def get_chat_contacts(
 ):
     """
     Fetch relevant chat contacts with unread badge counts and latest message snippets.
-    - Students get their assigned mentor (highlighted) + all active mentors.
-    - Mentors get their assigned student interns (highlighted) + all student interns.
-    - Admins get all users.
+    Optimized with set-based batch queries to eliminate N+1 DB roundtrips.
     """
+    from sqlalchemy import func
+
+    # 1. Batch fetch all unread counts for messages sent to current_user (1 query)
+    unread_counts_raw = db.query(
+        models.ChatMessage.sender_id,
+        func.count(models.ChatMessage.id)
+    ).filter(
+        models.ChatMessage.receiver_id == current_user.id,
+        models.ChatMessage.is_read == False
+    ).group_by(models.ChatMessage.sender_id).all()
+    unread_map = {row[0]: row[1] for row in unread_counts_raw}
+
+    # 2. Batch fetch latest messages involving current_user (1 query)
+    recent_messages = db.query(
+        models.ChatMessage
+    ).filter(
+        or_(
+            models.ChatMessage.sender_id == current_user.id,
+            models.ChatMessage.receiver_id == current_user.id
+        )
+    ).order_by(models.ChatMessage.created_at.desc()).all()
+
+    latest_msg_map = {}
+    for msg in recent_messages:
+        other_id = msg.receiver_id if msg.sender_id == current_user.id else msg.sender_id
+        if other_id not in latest_msg_map:
+            latest_msg_map[other_id] = msg
+
     contacts = []
 
     if current_user.role == "student":
@@ -40,18 +66,8 @@ def get_chat_contacts(
             if is_assigned:
                 detail = f"⭐ Assigned Mentor | {detail}"
 
-            unread_cnt = db.query(models.ChatMessage).filter(
-                models.ChatMessage.sender_id == m.user_id,
-                models.ChatMessage.receiver_id == current_user.id,
-                models.ChatMessage.is_read == False
-            ).count()
-
-            last_msg_obj = db.query(models.ChatMessage).filter(
-                or_(
-                    and_(models.ChatMessage.sender_id == current_user.id, models.ChatMessage.receiver_id == m.user_id),
-                    and_(models.ChatMessage.sender_id == m.user_id, models.ChatMessage.receiver_id == current_user.id)
-                )
-            ).order_by(models.ChatMessage.created_at.desc()).first()
+            unread_cnt = unread_map.get(m.user_id, 0)
+            last_msg_obj = latest_msg_map.get(m.user_id)
 
             contacts.append(schemas.ChatContactOut(
                 user_id=m.user_id,
@@ -77,18 +93,8 @@ def get_chat_contacts(
             if is_assigned:
                 detail = f"⭐ Assigned Intern | {detail}"
 
-            unread_cnt = db.query(models.ChatMessage).filter(
-                models.ChatMessage.sender_id == s.user_id,
-                models.ChatMessage.receiver_id == current_user.id,
-                models.ChatMessage.is_read == False
-            ).count()
-
-            last_msg_obj = db.query(models.ChatMessage).filter(
-                or_(
-                    and_(models.ChatMessage.sender_id == current_user.id, models.ChatMessage.receiver_id == s.user_id),
-                    and_(models.ChatMessage.sender_id == s.user_id, models.ChatMessage.receiver_id == current_user.id)
-                )
-            ).order_by(models.ChatMessage.created_at.desc()).first()
+            unread_cnt = unread_map.get(s.user_id, 0)
+            last_msg_obj = latest_msg_map.get(s.user_id)
 
             contacts.append(schemas.ChatContactOut(
                 user_id=s.user_id,
@@ -110,18 +116,8 @@ def get_chat_contacts(
             elif u.mentor_profile:
                 name = u.mentor_profile.name
 
-            unread_cnt = db.query(models.ChatMessage).filter(
-                models.ChatMessage.sender_id == u.id,
-                models.ChatMessage.receiver_id == current_user.id,
-                models.ChatMessage.is_read == False
-            ).count()
-
-            last_msg_obj = db.query(models.ChatMessage).filter(
-                or_(
-                    and_(models.ChatMessage.sender_id == current_user.id, models.ChatMessage.receiver_id == u.id),
-                    and_(models.ChatMessage.sender_id == u.id, models.ChatMessage.receiver_id == current_user.id)
-                )
-            ).order_by(models.ChatMessage.created_at.desc()).first()
+            unread_cnt = unread_map.get(u.id, 0)
+            last_msg_obj = latest_msg_map.get(u.id)
 
             contacts.append(schemas.ChatContactOut(
                 user_id=u.id,

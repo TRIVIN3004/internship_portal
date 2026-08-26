@@ -172,8 +172,6 @@ export default function MentorDashboard() {
 
   useEffect(() => {
     fetchData();
-    intervalRef.current = setInterval(() => fetchData(true), 30000);
-    return () => clearInterval(intervalRef.current);
   }, []);
 
   const handleAssignTask = async (e) => {

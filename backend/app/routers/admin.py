@@ -19,8 +19,9 @@ def list_all_students(
     students = db.query(models.StudentProfile).all()
     response = []
     for s in students:
-        # Update metrics to ensure they are current
-        recalculate_student_metrics(s.id, db)
+        # Only compute metrics if they have never been calculated
+        if not s.performance_metrics:
+            recalculate_student_metrics(s.id, db)
         
         metrics = s.performance_metrics
         
