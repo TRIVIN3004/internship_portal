@@ -8,7 +8,7 @@ import {
   Users, PlusSquare, FileText, CheckCircle, XCircle, Award,
   ShieldAlert, TrendingUp, Clock, RefreshCw, Lock, Layers,
   AlertTriangle, Trash2, Paperclip, Download, Eye, MessageSquare, Megaphone, ArrowRight, UserCheck,
-  Loader2, ShieldCheck
+  Loader2, ShieldCheck, Mail
 } from 'lucide-react';
 
 const BATCH_CONFIG = {
@@ -178,6 +178,9 @@ export default function MentorDashboard() {
     e.preventDefault(); setMessage(''); setErrMessage('');
     if (!taskStudentId) { setErrMessage('Please select a student intern first.'); return; }
     setIsDispatchingTask(true);
+    const selectedStudentObj = students.find(s => String(s.id) === String(taskStudentId));
+    const targetEmail = selectedStudentObj?.personal_email || selectedStudentObj?.email || 'intern';
+
     try {
       const res = await authenticatedFetch('/api/mentors/tasks', {
         method: 'POST',
@@ -185,7 +188,7 @@ export default function MentorDashboard() {
         body: JSON.stringify({ title: taskTitle, description: taskDesc, assigned_to_student_id: parseInt(taskStudentId), due_date: taskDueDate })
       });
       if (res.ok) {
-        setMessage('Task assigned successfully!');
+        setMessage(`Task assigned successfully! Notification email dispatched to ${targetEmail} via Resend.`);
         setTaskTitle(''); setTaskDesc(''); setTaskDueDate('');
         fetchData();
       } else { const e = await res.json(); setErrMessage(e.detail || 'Failed to assign task.'); }
@@ -421,6 +424,10 @@ export default function MentorDashboard() {
                         <span className="inline-block text-[10px] text-cyan-400 font-semibold mt-0.5">
                           {s.department || s.internship_domain || 'Engineering'}
                         </span>
+                        <div className="flex items-center gap-1.5 text-[10px] text-slate-400 mt-1">
+                          <Mail size={11} className="text-cyan-400 shrink-0" />
+                          <span className="truncate max-w-[200px]" title={s.personal_email || s.email}>{s.personal_email || s.email}</span>
+                        </div>
                       </div>
                       <div className="flex flex-col items-end gap-1.5 shrink-0">
                         <span className={`px-2.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider border ${
@@ -686,6 +693,21 @@ export default function MentorDashboard() {
                 <input type="datetime-local" required min={new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)} className="w-full px-4 py-2.5 bg-slate-900 border border-slate-800 focus:border-blue-500 rounded-lg text-sm text-slate-200 outline-none"
                   value={taskDueDate} onChange={(e) => setTaskDueDate(e.target.value)} />
               </div>
+
+              {/* Email Notification Target info */}
+              {(() => {
+                const sel = students.find(s => String(s.id) === String(taskStudentId));
+                const targetEmail = sel?.personal_email || sel?.email;
+                return (
+                  <div className="p-3 rounded-xl bg-blue-500/10 border border-blue-500/20 text-xs text-blue-300 flex items-center gap-2.5">
+                    <Mail size={16} className="text-blue-400 shrink-0" />
+                    <span>
+                      Email notice will be sent to: <strong className="text-white font-mono">{targetEmail || 'Select a student'}</strong> via Resend
+                    </span>
+                  </div>
+                );
+              })()}
+
               <button
                 type="submit"
                 disabled={isDispatchingTask}

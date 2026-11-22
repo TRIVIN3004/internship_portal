@@ -24,6 +24,8 @@ class UserCreate(BaseModel):
     password: str
     role: str # "student" or "mentor" or "admin"
     name: str
+    personal_email: Optional[EmailStr] = None
+    mentor_email: Optional[EmailStr] = None
     college: Optional[str] = None
     department: Optional[str] = None
     skills: Optional[str] = None
@@ -45,6 +47,8 @@ class MentorProfileOut(BaseModel):
     name: str
     department: Optional[str] = None
     specialization: Optional[str] = None
+    mentor_email: Optional[str] = None
+    email: Optional[str] = None
     attendance_rate: Optional[float] = 1.0
     total_attendance: Optional[int] = 0
     present_count: Optional[int] = 0
@@ -55,6 +59,7 @@ class MentorProfileOut(BaseModel):
 # --- Student Schemas ---
 class StudentProfileBase(BaseModel):
     name: str
+    personal_email: Optional[str] = None
     college: Optional[str] = None
     department: Optional[str] = None
     skills: Optional[str] = None
@@ -69,6 +74,7 @@ class StudentProfileCreate(StudentProfileBase):
 class StudentProfileOut(StudentProfileBase):
     id: int
     user_id: int
+    email: Optional[str] = None
     mentor: Optional[MentorProfileOut] = None
     performance_metrics: Optional['PerformanceMetricsOut'] = None
 

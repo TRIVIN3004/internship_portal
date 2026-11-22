@@ -27,6 +27,7 @@ class StudentProfile(Base):
     department = Column(String, nullable=True)
     skills = Column(String, nullable=True) # Comma-separated tags, e.g., "Python,ML,React"
     internship_domain = Column(String, nullable=True) # e.g. "AI & Data Science", "Web Development"
+    personal_email = Column(String, nullable=True) # Student's personal mail ID for task notifications
     start_date = Column(Date, nullable=True)
     end_date = Column(Date, nullable=True)
     mentor_id = Column(Integer, ForeignKey("mentor_profiles.id", ondelete="SET NULL"), nullable=True, index=True)
@@ -49,6 +50,7 @@ class MentorProfile(Base):
     name = Column(String, nullable=False)
     department = Column(String, nullable=True)
     specialization = Column(String, nullable=True)
+    mentor_email = Column(String, nullable=True) # Mentor's official/contact mail ID
     
     # Relationships
     user = relationship("User", back_populates="mentor_profile")

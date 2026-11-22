@@ -4,13 +4,17 @@ from typing import List
 import datetime
 from ..database import get_db
 from .. import models, schemas, auth
+from ..email_service import send_task_assignment_email
 from .students import recalculate_student_metrics
 
 router = APIRouter(prefix="/mentors", tags=["Mentors"])
 
 @router.get("/me", response_model=schemas.MentorProfileOut)
 def get_mentor_profile(mentor: models.MentorProfile = Depends(auth.get_current_active_mentor)):
-    return mentor
+    mentor_out = schemas.MentorProfileOut.from_orm(mentor)
+    mentor_out.email = mentor.user.email if mentor.user else None
+    mentor_out.mentor_email = mentor.mentor_email or (mentor.user.email if mentor.user else None)
+    return mentor_out
 
 @router.get("/students", response_model=List[schemas.StudentWithMetricsOut])
 def get_assigned_students(
@@ -40,6 +44,8 @@ def get_assigned_students(
         student_data = schemas.StudentWithMetricsOut(
             id=s.id,
             user_id=s.user_id,
+            email=s.user.email if s.user else None,
+            personal_email=s.personal_email or (s.user.email if s.user else None),
             name=s.name,
             college=s.college,
             department=s.department,
@@ -48,7 +54,14 @@ def get_assigned_students(
             start_date=s.start_date,
             end_date=s.end_date,
             mentor_id=s.mentor_id,
-            mentor=schemas.MentorProfileOut(id=mentor.id, name=mentor.name, department=mentor.department, specialization=mentor.specialization),
+            mentor=schemas.MentorProfileOut(
+                id=mentor.id,
+                name=mentor.name,
+                department=mentor.department,
+                specialization=mentor.specialization,
+                mentor_email=mentor.mentor_email or (mentor.user.email if mentor.user else None),
+                email=mentor.user.email if mentor.user else None
+            ),
             attendance_rate=round(attendance_rate, 2),
             task_completion_rate=round(task_completion_rate, 2),
             avg_task_score=round(avg_task_score, 1),
@@ -93,6 +106,24 @@ def assign_task(
     
     # Update performance metrics
     recalculate_student_metrics(student.id, db)
+    
+    # Send email notification to intern student via Resend
+    student_email = student.personal_email or (student.user.email if student.user else None)
+    mentor_email = mentor.mentor_email or (mentor.user.email if mentor.user else None)
+    
+    if student_email:
+        try:
+            send_task_assignment_email(
+                to_email=student_email,
+                student_name=student.name,
+                task_title=new_task.title,
+                task_description=new_task.description,
+                due_date=new_task.due_date,
+                mentor_name=mentor.name,
+                mentor_email=mentor_email
+            )
+        except Exception as email_err:
+            print(f"Non-blocking task assignment email warning: {email_err}")
     
     return new_task
 

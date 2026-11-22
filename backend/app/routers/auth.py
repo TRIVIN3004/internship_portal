@@ -43,6 +43,7 @@ def register_user(user_in: schemas.UserCreate, db: Session = Depends(get_db)):
             department=user_in.department,
             skills=user_in.skills,
             internship_domain=user_in.internship_domain,
+            personal_email=user_in.personal_email or user_in.email,
             start_date=datetime.date.today() if hasattr(datetime, 'date') else None,
             end_date=None
         )
@@ -64,7 +65,8 @@ def register_user(user_in: schemas.UserCreate, db: Session = Depends(get_db)):
             user_id=new_user.id,
             name=user_in.name,
             department=user_in.department,
-            specialization=user_in.internship_domain
+            specialization=user_in.internship_domain,
+            mentor_email=user_in.mentor_email or user_in.email
         )
         db.add(mentor)
         

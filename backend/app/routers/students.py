@@ -61,8 +61,16 @@ def get_student_dashboard(
         models.ChatMessage.is_read == False
     ).count()
 
+    prof_out = schemas.StudentProfileOut.from_orm(student)
+    prof_out.email = student.user.email if student.user else None
+    prof_out.personal_email = student.personal_email or (student.user.email if student.user else None)
+    if student.mentor:
+        prof_out.mentor = schemas.MentorProfileOut.from_orm(student.mentor)
+        prof_out.mentor.mentor_email = student.mentor.mentor_email or (student.mentor.user.email if student.mentor.user else None)
+        prof_out.mentor.email = student.mentor.user.email if student.mentor.user else None
+
     return schemas.StudentDashboardOut(
-        profile=schemas.StudentProfileOut.from_orm(student),
+        profile=prof_out,
         tasks=[schemas.TaskOut.from_orm(t) for t in tasks],
         reports=[schemas.DailyReportOut.from_orm(r) for r in reports],
         attendance=[schemas.AttendanceOut.from_orm(a) for a in attendance],
@@ -74,7 +82,14 @@ def get_student_dashboard(
 
 @router.get("/me", response_model=schemas.StudentProfileOut)
 def get_student_profile(student: models.StudentProfile = Depends(auth.get_current_active_student)):
-    return student
+    prof_out = schemas.StudentProfileOut.from_orm(student)
+    prof_out.email = student.user.email if student.user else None
+    prof_out.personal_email = student.personal_email or (student.user.email if student.user else None)
+    if student.mentor:
+        prof_out.mentor = schemas.MentorProfileOut.from_orm(student.mentor)
+        prof_out.mentor.mentor_email = student.mentor.mentor_email or (student.mentor.user.email if student.mentor.user else None)
+        prof_out.mentor.email = student.mentor.user.email if student.mentor.user else None
+    return prof_out
 
 @router.put("/me", response_model=schemas.StudentProfileOut)
 def update_student_profile(
@@ -83,6 +98,8 @@ def update_student_profile(
     db: Session = Depends(get_db)
 ):
     student.name = profile_data.name
+    if profile_data.personal_email is not None:
+        student.personal_email = profile_data.personal_email
     if profile_data.college is not None:
         student.college = profile_data.college
     if profile_data.department is not None:
@@ -94,7 +111,15 @@ def update_student_profile(
         
     db.commit()
     db.refresh(student)
-    return student
+    
+    prof_out = schemas.StudentProfileOut.from_orm(student)
+    prof_out.email = student.user.email if student.user else None
+    prof_out.personal_email = student.personal_email or (student.user.email if student.user else None)
+    if student.mentor:
+        prof_out.mentor = schemas.MentorProfileOut.from_orm(student.mentor)
+        prof_out.mentor.mentor_email = student.mentor.mentor_email or (student.mentor.user.email if student.mentor.user else None)
+        prof_out.mentor.email = student.mentor.user.email if student.mentor.user else None
+    return prof_out
 
 @router.get("/me/tasks", response_model=List[schemas.TaskOut])
 def get_student_tasks(student: models.StudentProfile = Depends(auth.get_current_active_student)):
@@ -250,6 +275,15 @@ def get_student_certificate(student: models.StudentProfile = Depends(auth.get_cu
             detail="Certificate has not been issued yet by the Administrator"
         )
     return student.certificate
+
+@router.delete("/{student_id}")
+def delete_student(
+    student_id: int,
+    admin: models.User = Depends(auth.get_current_active_admin),
+    db: Session = Depends(get_db)
+):
+    from .admin import delete_student_profile_and_user
+    return delete_student_profile_and_user(student_id, db)
 
 # --- Helper: classify batch by internship score ---
 def classify_batch(score: float) -> str:

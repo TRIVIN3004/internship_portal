@@ -37,7 +37,9 @@ def startup_db():
             with engine.connect() as conn:
                 if "postgresql" in str(engine.url):
                     conn.execute(text("ALTER TABLE tasks ALTER COLUMN due_date TYPE TIMESTAMP WITHOUT TIME ZONE USING due_date::timestamp;"))
-                    conn.commit()
+                conn.execute(text("ALTER TABLE student_profiles ADD COLUMN IF NOT EXISTS personal_email VARCHAR;"))
+                conn.execute(text("ALTER TABLE mentor_profiles ADD COLUMN IF NOT EXISTS mentor_email VARCHAR;"))
+                conn.commit()
         except Exception as migration_err:
             pass
     except Exception as e:

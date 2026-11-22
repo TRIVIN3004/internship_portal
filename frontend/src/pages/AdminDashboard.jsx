@@ -99,7 +99,14 @@ export default function AdminDashboard() {
         const studData = await studRes.json();
         setStudents(studData);
         if (studData.length > 0) {
-          setSelectedStudentId(String(studData[0].id));
+          setSelectedStudentId((prev) => {
+            if (prev && studData.some((s) => String(s.id) === String(prev))) {
+              return prev;
+            }
+            return String(studData[0].id);
+          });
+        } else {
+          setSelectedStudentId('');
         }
       }
       
@@ -186,6 +193,28 @@ export default function AdminDashboard() {
       }
     } catch (err) {
       setMappingError('Network error rendering PDF.');
+    }
+  };
+
+  const handleDeleteStudent = async (studentId, studentName) => {
+    if (!window.confirm(`Are you sure you want to delete student "${studentName}"? This will permanently remove their user account, attendance records, tasks, daily reports, and documents.`)) {
+      return;
+    }
+    setMappingMessage('');
+    setMappingError('');
+    try {
+      const res = await authenticatedFetch(`/api/admin/students/${studentId}`, {
+        method: 'DELETE'
+      });
+      if (res.ok) {
+        setMappingMessage(`Student "${studentName}" deleted successfully.`);
+        fetchData();
+      } else {
+        const err = await res.json();
+        setMappingError(err.detail || 'Failed to delete student.');
+      }
+    } catch (err) {
+      setMappingError('Network error deleting student.');
     }
   };
 
@@ -416,7 +445,7 @@ export default function AdminDashboard() {
                   onChange={(e) => setSelectedStudentId(e.target.value)}
                 >
                   {students.map(s => (
-                    <option key={s.id} value={s.id}>{s.name} ({s.internship_domain})</option>
+                    <option key={s.id} value={s.id}>{s.name} ({s.personal_email || s.email || s.internship_domain})</option>
                   ))}
                 </select>
               </div>
@@ -430,7 +459,7 @@ export default function AdminDashboard() {
                   onChange={(e) => setSelectedMentorId(e.target.value)}
                 >
                   {mentors.map(m => (
-                    <option key={m.id} value={m.id}>{m.name} ({m.department})</option>
+                    <option key={m.id} value={m.id}>{m.name} ({m.mentor_email || m.email || m.department})</option>
                   ))}
                 </select>
               </div>
@@ -454,18 +483,19 @@ export default function AdminDashboard() {
               <table className="w-full text-left text-xs">
                 <thead>
                   <tr className="border-b border-slate-800 text-slate-500 uppercase tracking-widest text-[9px]">
-                    <th className="pb-3">Name / Domain</th>
+                    <th className="pb-3">Name / Domain / Email</th>
                     <th className="pb-3">Mentor</th>
                     <th className="pb-3">KPI rates</th>
                     <th className="pb-3">AI Grade</th>
                     <th className="pb-3">Int. Score / Batch</th>
                     <th className="pb-3">Certificates</th>
+                    <th className="pb-3 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-850">
                   {students.length === 0 ? (
                     <tr>
-                      <td colSpan="6" className="text-center py-6 text-slate-500">No students registered yet.</td>
+                      <td colSpan="7" className="text-center py-6 text-slate-500">No students registered yet.</td>
                     </tr>
                   ) : (
                     students.map((student) => {
@@ -483,9 +513,17 @@ export default function AdminDashboard() {
                           <td className="py-4">
                             <span className="block font-bold text-slate-200">{student.name}</span>
                             <span className="block text-[10px] text-slate-500">{student.college} | {student.internship_domain}</span>
+                            <span className="block text-[10px] text-cyan-400 font-mono">📧 {student.personal_email || student.email}</span>
                           </td>
                           <td className="py-4 text-slate-300">
-                            {student.mentor ? student.mentor.name : <span className="text-slate-500 font-italic">Unmapped</span>}
+                            {student.mentor ? (
+                              <div>
+                                <span className="block font-semibold text-slate-200">{student.mentor.name}</span>
+                                <span className="block text-[10px] text-slate-400 font-mono">{student.mentor.mentor_email || student.mentor.email}</span>
+                              </div>
+                            ) : (
+                              <span className="text-slate-500 font-italic">Unmapped</span>
+                            )}
                           </td>
                           <td className="py-4">
                             <span className="block text-[10px] text-slate-400">Att: {Math.round(student.attendance_rate * 100)}%</span>
@@ -528,6 +566,15 @@ export default function AdminDashboard() {
                                 🔒 Locked
                               </span>
                             )}
+                          </td>
+                          <td className="py-4 text-right">
+                            <button
+                              onClick={() => handleDeleteStudent(student.id, student.name)}
+                              className="px-2 py-1 bg-slate-900 border border-slate-800 hover:border-red-500/40 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded text-[10px] font-bold transition inline-flex items-center gap-1"
+                              title={`Delete student ${student.name}`}
+                            >
+                              <Trash2 size={12} /> Delete
+                            </button>
                           </td>
                         </tr>
                       );

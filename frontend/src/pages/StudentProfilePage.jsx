@@ -7,7 +7,7 @@ import {
   ArrowLeft, Users, CheckCircle, XCircle, ShieldAlert, TrendingUp,
   Clock, RefreshCw, PlusSquare, FileText, Award, Paperclip, Download,
   Eye, Layers, Lock, Trash2, MessageSquare, AlertTriangle, Calendar,
-  Star, BookOpen, Filter, Check, AlertCircle, FileCheck, Loader2
+  Star, BookOpen, Filter, Check, AlertCircle, FileCheck, Loader2, Mail
 } from 'lucide-react';
 
 const BATCH_CONFIG = {
@@ -137,6 +137,7 @@ export default function StudentProfilePage() {
   const handleAssignTask = async (e) => {
     e.preventDefault(); setMessage(''); setErrMessage('');
     setIsDispatchingTask(true);
+    const targetEmail = student?.personal_email || student?.email || 'intern student';
     try {
       const res = await authenticatedFetch('/api/mentors/tasks', {
         method: 'POST',
@@ -149,7 +150,7 @@ export default function StudentProfilePage() {
         })
       });
       if (res.ok) {
-        setMessage('Task assigned successfully!');
+        setMessage(`Task assigned successfully! Notification email dispatched to ${targetEmail} via Resend.`);
         setTaskTitle(''); setTaskDesc(''); setTaskDueDate('');
         setIsAssignModalOpen(false);
         fetchData(true);
@@ -411,6 +412,11 @@ export default function StudentProfilePage() {
                 <span className="text-slate-300 font-semibold">{student.college}</span>
                 <span>•</span>
                 <span>Department/Domain: <strong className="text-cyan-400">{student.department || student.internship_domain || 'General Engineering'}</strong></span>
+                <span>•</span>
+                <span className="flex items-center gap-1 text-slate-300">
+                  <Mail size={12} className="text-cyan-400" />
+                  Personal Mail: <strong className="text-cyan-300">{student.personal_email || student.email || 'N/A'}</strong>
+                </span>
                 {student.start_date && (
                   <>
                     <span>•</span>
@@ -1102,6 +1108,13 @@ export default function StudentProfilePage() {
                 <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-2">Deadline Date & Time</label>
                 <input type="datetime-local" required min={new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)} className="w-full px-4 py-2.5 bg-slate-900 border border-slate-800 focus:border-blue-500 rounded-lg text-sm text-slate-200 outline-none"
                   value={taskDueDate} onChange={(e) => setTaskDueDate(e.target.value)} />
+              </div>
+
+              <div className="p-3 rounded-xl bg-blue-500/10 border border-blue-500/20 text-xs text-blue-300 flex items-center gap-2.5">
+                <Mail size={16} className="text-blue-400 shrink-0" />
+                <span>
+                  Automatic notification email will be dispatched to: <strong className="text-white font-mono">{student.personal_email || student.email}</strong> via Resend
+                </span>
               </div>
 
               <div className="flex justify-end gap-3 pt-2">

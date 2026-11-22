@@ -1,6 +1,7 @@
 import os
 import sys
 import tempfile
+import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -25,18 +26,22 @@ def override_get_db():
     finally:
         db.close()
 
-app.dependency_overrides[get_db] = override_get_db
-
-def test_mentor_view_download_documents():
-    # Clean up test DB if left over
+@pytest.fixture(autouse=True)
+def setup_db():
+    Base.metadata.drop_all(bind=engine)
+    Base.metadata.create_all(bind=engine)
+    app.dependency_overrides[get_db] = override_get_db
+    yield
+    Base.metadata.drop_all(bind=engine)
+    engine.dispose()
+    app.dependency_overrides.pop(get_db, None)
     if os.path.exists(TEST_DB_FILE):
         try:
             os.remove(TEST_DB_FILE)
         except OSError:
             pass
 
-    # Create tables
-    Base.metadata.create_all(bind=engine)
+def test_mentor_view_download_documents():
     db = TestingSessionLocal()
 
     try:
@@ -142,4 +147,4 @@ def test_mentor_view_download_documents():
             except OSError:
                 pass
         # Clear dependency overrides
-        app.dependency_overrides.clear()
+        app.dependency_overrides.pop(get_db, None)

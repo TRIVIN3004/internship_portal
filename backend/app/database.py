@@ -64,13 +64,20 @@ _tables_initialized = False
 def ensure_tables_exist():
     global _tables_initialized
     if not _tables_initialized:
-        if is_vercel:
-            _tables_initialized = True
-            return
         try:
             # Import models to register them with Base before create_all
             from . import models
-            Base.metadata.create_all(bind=engine)
+            if not is_vercel:
+                Base.metadata.create_all(bind=engine)
+            # Safe column migrations for PostgreSQL and SQLite
+            from sqlalchemy import text
+            with engine.connect() as conn:
+                try:
+                    conn.execute(text("ALTER TABLE student_profiles ADD COLUMN IF NOT EXISTS personal_email VARCHAR;"))
+                    conn.execute(text("ALTER TABLE mentor_profiles ADD COLUMN IF NOT EXISTS mentor_email VARCHAR;"))
+                    conn.commit()
+                except Exception:
+                    pass
             _tables_initialized = True
         except Exception as e:
             print(f"Table initialization warning: {e}")

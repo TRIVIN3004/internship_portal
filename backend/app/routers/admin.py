@@ -45,12 +45,16 @@ def list_all_students(
                 id=s.mentor.id, 
                 name=s.mentor.name, 
                 department=s.mentor.department, 
-                specialization=s.mentor.specialization
+                specialization=s.mentor.specialization,
+                mentor_email=s.mentor.mentor_email or (s.mentor.user.email if s.mentor.user else None),
+                email=s.mentor.user.email if s.mentor.user else None
             )
             
         student_data = schemas.StudentWithMetricsOut(
             id=s.id,
             user_id=s.user_id,
+            email=s.user.email if s.user else None,
+            personal_email=s.personal_email or (s.user.email if s.user else None),
             name=s.name,
             college=s.college,
             department=s.department,
@@ -91,6 +95,8 @@ def list_all_mentors(
             name=m.name,
             department=m.department,
             specialization=m.specialization,
+            mentor_email=m.mentor_email or (m.user.email if m.user else None),
+            email=m.user.email if m.user else None,
             attendance_rate=round(att_rate, 2),
             total_attendance=total_att,
             present_count=present
@@ -135,6 +141,64 @@ def assign_mentor(
     student.mentor_id = mentor.id
     db.commit()
     return {"message": f"Student {student.name} assigned to mentor {mentor.name} successfully"}
+
+def delete_student_profile_and_user(student_id: int, db: Session) -> dict:
+    student = db.query(models.StudentProfile).filter(models.StudentProfile.id == student_id).first()
+    if not student:
+        raise HTTPException(status_code=404, detail="Student profile not found")
+        
+    student_name = student.name
+    user_id = student.user_id
+    user = db.query(models.User).filter(models.User.id == user_id).first() if user_id else None
+
+    # 1. Clean up documents from disk
+    for doc in student.documents:
+        if doc.file_path and os.path.exists(doc.file_path):
+            try:
+                os.remove(doc.file_path)
+            except OSError:
+                pass
+
+    # 2. Clean up certificate PDF from disk
+    if student.certificate and student.certificate.pdf_path and os.path.exists(student.certificate.pdf_path):
+        try:
+            os.remove(student.certificate.pdf_path)
+        except OSError:
+            pass
+
+    # 3. Clean up records tied to user_id (chat messages, announcements, feedbacks)
+    if user_id:
+        db.query(models.ChatMessage).filter(
+            (models.ChatMessage.sender_id == user_id) | (models.ChatMessage.receiver_id == user_id)
+        ).delete(synchronize_session=False)
+
+        db.query(models.Announcement).filter(
+            models.Announcement.created_by_id == user_id
+        ).delete(synchronize_session=False)
+
+        db.query(models.Feedback).filter(
+            models.Feedback.user_id == user_id
+        ).delete(synchronize_session=False)
+
+    # 4. Delete student profile (and child records via cascade)
+    db.delete(student)
+    db.flush()
+
+    # 5. Delete the user account
+    if user:
+        db.delete(user)
+
+    db.commit()
+
+    return {"message": f"Student '{student_name}' deleted successfully"}
+
+@router.delete("/students/{student_id}")
+def delete_student(
+    student_id: int,
+    admin: models.User = Depends(auth.get_current_active_admin),
+    db: Session = Depends(get_db)
+):
+    return delete_student_profile_and_user(student_id, db)
 
 @router.post("/students/{student_id}/generate-certificate", response_model=schemas.CertificateOut)
 def generate_student_certificate(

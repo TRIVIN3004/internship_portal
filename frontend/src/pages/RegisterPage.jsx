@@ -8,6 +8,8 @@ export default function RegisterPage() {
   const [role, setRole] = useState('student');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [personalEmail, setPersonalEmail] = useState('');
+  const [mentorEmail, setMentorEmail] = useState('');
   const [password, setPassword] = useState('');
   const [college, setCollege] = useState('');
   const [department, setDepartment] = useState('');
@@ -32,6 +34,8 @@ export default function RegisterPage() {
       password,
       role,
       name,
+      personal_email: role === 'student' ? (personalEmail || email) : null,
+      mentor_email: role === 'mentor' ? (mentorEmail || email) : null,
       college: role === 'student' ? college : null,
       department: department || null,
       skills: role === 'student' ? skills : null,
@@ -135,7 +139,7 @@ export default function RegisterPage() {
 
             <div>
               <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
-                Email Address
+                Account Login Email
               </label>
               <div className="relative">
                 <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" size={16} />
@@ -150,6 +154,47 @@ export default function RegisterPage() {
               </div>
             </div>
           </div>
+
+          {/* Role-Specific Mail ID input */}
+          {role === 'student' ? (
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400">
+                  Student Personal Mail ID
+                </label>
+                <span className="text-[10px] text-cyan-400 font-semibold">Used for task dispatch emails via Resend</span>
+              </div>
+              <div className="relative">
+                <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 text-cyan-400" size={16} />
+                <input
+                  type="email"
+                  className="w-full pl-10 pr-4 py-2.5 bg-slate-900/80 border border-cyan-500/40 focus:border-cyan-400 rounded-lg text-sm text-slate-200 outline-none transition"
+                  placeholder="student.personal@gmail.com (Default: Account Email)"
+                  value={personalEmail}
+                  onChange={(e) => setPersonalEmail(e.target.value)}
+                />
+              </div>
+            </div>
+          ) : (
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400">
+                  Mentor Official / Contact Mail ID
+                </label>
+                <span className="text-[10px] text-cyan-400 font-semibold">Visible to students &amp; email reply-to</span>
+              </div>
+              <div className="relative">
+                <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 text-cyan-400" size={16} />
+                <input
+                  type="email"
+                  className="w-full pl-10 pr-4 py-2.5 bg-slate-900/80 border border-cyan-500/40 focus:border-cyan-400 rounded-lg text-sm text-slate-200 outline-none transition"
+                  placeholder="mentor.contact@university.edu (Default: Account Email)"
+                  value={mentorEmail}
+                  onChange={(e) => setMentorEmail(e.target.value)}
+                />
+              </div>
+            </div>
+          )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>

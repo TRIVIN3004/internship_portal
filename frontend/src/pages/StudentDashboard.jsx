@@ -7,7 +7,7 @@ import {
   User, Calendar, CheckSquare, Award, BookOpen, Send, 
   Smile, Activity, AlertCircle, FileText, CheckCircle, Clock,
   UploadCloud, Eye, Download, Trash2, Paperclip, Lock, MessageSquare, Megaphone,
-  Loader2, ShieldCheck
+  Loader2, ShieldCheck, Mail
 } from 'lucide-react';
 
 function formatDateTime(dateStr) {
@@ -457,12 +457,23 @@ export default function StudentDashboard() {
             
             <div className="mt-6 pt-6 border-t border-slate-800/80 space-y-3.5">
               <div className="flex justify-between text-xs">
+                <span className="text-slate-500">Personal Mail ID</span>
+                <span className="text-cyan-400 font-semibold">{profile?.personal_email || profile?.email || 'N/A'}</span>
+              </div>
+              <div className="flex justify-between text-xs">
                 <span className="text-slate-500">Department</span>
                 <span className="text-slate-300 font-semibold">{profile?.department || 'N/A'}</span>
               </div>
               <div className="flex justify-between text-xs">
                 <span className="text-slate-500">Academic Mentor</span>
-                <span className="text-slate-300 font-semibold">{profile?.mentor?.name || 'Unassigned'}</span>
+                <div className="text-right">
+                  <span className="text-slate-300 font-semibold block">{profile?.mentor?.name || 'Unassigned'}</span>
+                  {(profile?.mentor?.mentor_email || profile?.mentor?.email) && (
+                    <span className="text-[10px] text-cyan-400 font-mono block">
+                      {profile?.mentor?.mentor_email || profile?.mentor?.email}
+                    </span>
+                  )}
+                </div>
               </div>
               <div>
                 <span className="block text-[10px] uppercase font-bold text-slate-500 tracking-wider mb-2">Registered Skills</span>
